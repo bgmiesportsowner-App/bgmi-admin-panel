@@ -11,6 +11,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// -------------------- Admin auth middleware --------------------
+function requireAdmin(req, res, next) {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : auth;
+
+  if (!token || token !== process.env.ADMIN_TOKEN) {
+    return res
+      .status(401)
+      .json({ ok: false, message: "Unauthorized: admin token invalid" });
+  }
+
+  next();
+}
+
 // -------------------- Mail setup (Gmail + App Password) --------------------
 const mailer = nodemailer.createTransport({
   host: process.env.MAIL_HOST || "smtp.gmail.com",
@@ -276,7 +290,7 @@ app.post("/auth/login", (req, res) => {
 });
 
 // 4) Admin: get all users (with plain password)
-app.get("/admin/users", (req, res) => {
+app.get("/admin/users", requireAdmin, (req, res) => {
   db.all(
     "SELECT id, profile_id, name, email, password_plain, created_at FROM users ORDER BY id ASC",
     [],
@@ -294,7 +308,7 @@ app.get("/admin/users", (req, res) => {
 });
 
 // 5) Admin: delete one user by id (PERMANENT)
-app.delete("/admin/users/:id", (req, res) => {
+app.delete("/admin/users/:id", requireAdmin, (req, res) => {
   const userId = req.params.id;
 
   db.run(
