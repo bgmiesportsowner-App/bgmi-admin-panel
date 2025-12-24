@@ -1,9 +1,11 @@
 // src/pages/AdminLogin.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase"; // path: src/firebase.js
+import axios from "axios";
 import "./AdminLogin.css";
+
+const API_BASE =
+  process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -18,8 +20,15 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      // Firebase Auth login
-      await signInWithEmailAndPassword(auth, email, password);
+      // custom backend login
+      const res = await axios.post(`${API_BASE}/auth/admin-login`, {
+        email,
+        password,
+      });
+
+      if (!res.data?.success) {
+        throw new Error("Invalid credentials");
+      }
 
       // Login success
       localStorage.setItem("bgmi_admin_logged_in", "true");
