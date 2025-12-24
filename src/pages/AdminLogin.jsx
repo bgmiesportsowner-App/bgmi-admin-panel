@@ -3,9 +3,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminLogin.css";
 
-const ADMIN_EMAIL = "admin@bgmi.com";
-const ADMIN_PASSWORD = "Admin@123";
-
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,17 +10,30 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      setLoading(true);
-      localStorage.setItem("bgmi_admin_logged_in", "true");
-      // protected app ka root, jo dashboard show karega
-      navigate("/", { replace: true });
-    } else {
-      setError("Invalid admin email or password");
+    try {
+      const res = await fetch("http://localhost:5000/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        localStorage.setItem("bgmi_admin_logged_in", "true");
+        navigate("/", { replace: true });
+      } else {
+        setError(data.message || "Invalid admin email or password");
+      }
+    } catch (err) {
+      setError("Server error, please try again");
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -68,6 +68,32 @@ app.get("/", (req, res) => {
   res.json({ ok: true, message: "BGMI API running" });
 });
 
+
+// -------------------- Admin login (for React AdminLogin.jsx) --------------------
+app.post("/api/admin/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Email and password required" });
+  }
+
+  // Real admin creds .env me rakhe hain
+  if (
+    email === process.env.ADMIN_EMAIL &&
+    password === process.env.ADMIN_PASSWORD
+  ) {
+    // Optionally yahan koi session / token bhi bhej sakte ho
+    return res.json({ success: true, message: "Admin login successful" });
+  }
+
+  return res
+    .status(401)
+    .json({ success: false, message: "Invalid admin email or password" });
+});
+
+
 // 1) Send OTP to email
 app.post("/auth/send-otp", (req, res) => {
   const { email } = req.body;
@@ -78,70 +104,64 @@ app.post("/auth/send-otp", (req, res) => {
   }
 
   // Pehle check karo email users table me hai ya nahi
-  db.get(
-    "SELECT id FROM users WHERE email = ?",
-    [email],
-    (err, existing) => {
-      console.log("Existing row:", existing);
+  db.get("SELECT id FROM users WHERE email = ?", [email], (err, existing) => {
+    console.log("Existing row:", existing);
 
-      if (err) {
-        console.error("Error checking email before OTP:", err);
-        return res
-          .status(500)
-          .json({ ok: false, message: "Database error" });
-      }
-
-      if (existing) {
-        // Yahin OTP send hi nahi hoga
-        return res
-          .status(400)
-          .json({ ok: false, message: "Email already registered" });
-      }
-
-      // Agar email new hai tabhi OTP bhejo
-      const code = generateOtp();
-      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
-
-      db.serialize(() => {
-        db.run("UPDATE otps SET used = 1 WHERE email = ?", [email]);
-
-        db.run(
-          "INSERT INTO otps (email, code, expires_at, used) VALUES (?, ?, ?, 0)",
-          [email, code, expiresAt],
-          (insertErr) => {
-            if (insertErr) {
-              console.error("Error saving OTP:", insertErr);
-              return res
-                .status(500)
-                .json({ ok: false, message: "Failed to generate OTP" });
-            }
-
-            mailer.sendMail(
-              {
-                from: `"BGMI Esports" <${process.env.MAIL_USER}>`,
-                to: email,
-                subject: "Your BGMI Esports OTP Code",
-                text: `Your verification code is ${code}. It will expire in 5 minutes.`,
-              },
-              (mailErr) => {
-                if (mailErr) {
-                  console.error("Error sending OTP email:", mailErr);
-                  return res
-                    .status(500)
-                    .json({ ok: false, message: "Failed to send OTP email" });
-                }
-
-                return res.json({
-                  ok: true,
-                  message: "OTP sent to email",
-                });
-              }
-            );
-          }
-        );
-      });
+    if (err) {
+      console.error("Error checking email before OTP:", err);
+      return res.status(500).json({ ok: false, message: "Database error" });
     }
-  );
+
+    if (existing) {
+      // Yahin OTP send hi nahi hoga
+      return res
+        .status(400)
+        .json({ ok: false, message: "Email already registered" });
+    }
+
+    // Agar email new hai tabhi OTP bhejo
+    const code = generateOtp();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    db.serialize(() => {
+      db.run("UPDATE otps SET used = 1 WHERE email = ?", [email]);
+
+      db.run(
+        "INSERT INTO otps (email, code, expires_at, used) VALUES (?, ?, ?, 0)",
+        [email, code, expiresAt],
+        (insertErr) => {
+          if (insertErr) {
+            console.error("Error saving OTP:", insertErr);
+            return res
+              .status(500)
+              .json({ ok: false, message: "Failed to generate OTP" });
+          }
+
+          mailer.sendMail(
+            {
+              from: `"BGMI Esports" <${process.env.MAIL_USER}>`,
+              to: email,
+              subject: "Your BGMI Esports OTP Code",
+              text: `Your verification code is ${code}. It will expire in 5 minutes.`,
+            },
+            (mailErr) => {
+              if (mailErr) {
+                console.error("Error sending OTP email:", mailErr);
+                return res
+                  .status(500)
+                  .json({ ok: false, message: "Failed to send OTP email" });
+              }
+
+              return res.json({
+                ok: true,
+                message: "OTP sent to email",
+              });
+            }
+          );
+        }
+      );
+    });
+  });
 });
 
 // 2) Verify OTP + create user
@@ -182,64 +202,58 @@ app.post("/auth/verify-otp", (req, res) => {
       db.run("UPDATE otps SET used = 1 WHERE id = ?", [row.id]);
 
       // Safety: email already registered to nahi
-      db.get(
-        "SELECT id FROM users WHERE email = ?",
-        [email],
-        (userErr, existing) => {
-          if (userErr) {
-            console.error("Error checking user:", userErr);
+      db.get("SELECT id FROM users WHERE email = ?", [email], (userErr, existing) => {
+        if (userErr) {
+          console.error("Error checking user:", userErr);
+          return res.status(500).json({ ok: false, message: "Database error" });
+        }
+
+        if (existing) {
+          return res
+            .status(400)
+            .json({ ok: false, message: "Email already registered" });
+        }
+
+        // Generate profile ID then insert user
+        generateProfileId((pidErr, profileId) => {
+          if (pidErr) {
+            console.error("Error generating profile ID:", pidErr);
             return res
               .status(500)
-              .json({ ok: false, message: "Database error" });
+              .json({ ok: false, message: "Failed to create user" });
           }
 
-          if (existing) {
-            return res
-              .status(400)
-              .json({ ok: false, message: "Email already registered" });
-          }
+          const passwordHash = bcrypt.hashSync(password, 10);
+          const createdAt = new Date().toISOString();
 
-          // Generate profile ID then insert user
-          generateProfileId((pidErr, profileId) => {
-            if (pidErr) {
-              console.error("Error generating profile ID:", pidErr);
-              return res
-                .status(500)
-                .json({ ok: false, message: "Failed to create user" });
-            }
-
-            const passwordHash = bcrypt.hashSync(password, 10);
-            const createdAt = new Date().toISOString();
-
-            db.run(
-              "INSERT INTO users (profile_id, name, email, password_hash, password_plain, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-              [profileId, name, email, passwordHash, password, createdAt],
-              function (insertErr) {
-                if (insertErr) {
-                  console.error("Error inserting user:", insertErr);
-                  return res
-                    .status(500)
-                    .json({ ok: false, message: "Failed to create user" });
-                }
-
-                const user = {
-                  id: this.lastID,
-                  profile_id: profileId,
-                  name,
-                  email,
-                  created_at: createdAt,
-                };
-
-                return res.json({
-                  ok: true,
-                  message: "User created successfully",
-                  user,
-                });
+          db.run(
+            "INSERT INTO users (profile_id, name, email, password_hash, password_plain, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            [profileId, name, email, passwordHash, password, createdAt],
+            function (insertErr) {
+              if (insertErr) {
+                console.error("Error inserting user:", insertErr);
+                return res
+                  .status(500)
+                  .json({ ok: false, message: "Failed to create user" });
               }
-            );
-          });
-        }
-      );
+
+              const user = {
+                id: this.lastID,
+                profile_id: profileId,
+                name,
+                email,
+                created_at: createdAt,
+              };
+
+              return res.json({
+                ok: true,
+                message: "User created successfully",
+                user,
+              });
+            }
+          );
+        });
+      });
     }
   );
 });
@@ -311,29 +325,23 @@ app.get("/admin/users", requireAdmin, (req, res) => {
 app.delete("/admin/users/:id", requireAdmin, (req, res) => {
   const userId = req.params.id;
 
-  db.run(
-    "DELETE FROM users WHERE id = ?",
-    [userId],
-    function (err) {
-      if (err) {
-        console.error("Error deleting user:", err);
-        return res
-          .status(500)
-          .json({ ok: false, message: "Failed to delete user" });
-      }
-
-      if (this.changes === 0) {
-        return res
-          .status(404)
-          .json({ ok: false, message: "User not found" });
-      }
-
-      return res.json({
-        ok: true,
-        message: "User deleted successfully",
-      });
+  db.run("DELETE FROM users WHERE id = ?", [userId], function (err) {
+    if (err) {
+      console.error("Error deleting user:", err);
+      return res
+        .status(500)
+        .json({ ok: false, message: "Failed to delete user" });
     }
-  );
+
+    if (this.changes === 0) {
+      return res.status(404).json({ ok: false, message: "User not found" });
+    }
+
+    return res.json({
+      ok: true,
+      message: "User deleted successfully",
+    });
+  });
 });
 
 const PORT = process.env.PORT || 5000;
