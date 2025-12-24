@@ -1,6 +1,8 @@
 // src/pages/AdminLogin.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase"; // path: src/firebase.js
 import "./AdminLogin.css";
 
 const AdminLogin = () => {
@@ -16,22 +18,15 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      // Firebase Auth login
+      await signInWithEmailAndPassword(auth, email, password);
 
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        localStorage.setItem("bgmi_admin_logged_in", "true");
-        navigate("/", { replace: true });
-      } else {
-        setError(data.message || "Invalid admin email or password");
-      }
+      // Login success
+      localStorage.setItem("bgmi_admin_logged_in", "true");
+      navigate("/", { replace: true });
     } catch (err) {
-      setError("Server error, please try again");
+      console.error("Admin login error:", err);
+      setError("Invalid admin email or password");
     } finally {
       setLoading(false);
     }
@@ -56,7 +51,7 @@ const AdminLogin = () => {
             <input
               type="email"
               className="form-input hacker-input"
-              placeholder="enter@bgmi-admin.com"
+              placeholder="admin@bgmi.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="off"
