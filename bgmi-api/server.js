@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
-const db = require('./database'); // ./database.js
+const { db, initDb } = require('./database');
 const path = require('path');
 
 dotenv.config();
@@ -14,7 +14,10 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// ---------- Helpers ----------
+// DB init
+initDb().then(() => console.log('LowDB ready at', process.env.DB_FILE || 'bgmi.json'));
+
+// Helpers
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -23,44 +26,40 @@ function nowSeconds() {
   return Math.floor(Date.now() / 1000);
 }
 
-// ---------- Health check ----------
+// Health
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'BGMI API running' });
 });
 
-// ---------- Send OTP ----------
-app.post('/auth/send-otp', (req, res) => {
+// Send OTP
+app.post('/auth/send-otp', async (req, res) => {
   const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ error: 'Email required' });
-  }
+  if (!email) return res.status(400).json({ error: 'Email required' });
 
   const code = generateOtp();
-  const expiresAt = nowSeconds() + 5 * 60; // 5 minutes
+  const expiresAt = nowSeconds() + 5 * 60;
 
-  const insertSql =
-    'INSERT INTO otps (email, code, expires_at, used) VALUES (?, ?, ?, 0)';
+  await db.read();
+  db.data.otps.push({
+    id: Date.now().toString(),
+    email,
+    code,
+    expires_at: expiresAt,
+    used: 0
+  });
+  await db.write();
 
-  db.run(insertSql, [email, code, expiresAt], function (err) {
-    if (err) {
-      console.error('OTP insert error:', err.message);
-      return res.status(500).json({ error: 'DB error' });
-    }
+  console.log('OTP generated for', email, code);
 
-    // TODO: production me email bhejna; abhi dev ke liye console + response
-    console.log('OTP generated for', email, code);
-
-    res.json({
-      success: true,
-      message: 'OTP generated',
-      dev_otp: code, // production me hata dena
-    });
+  res.json({
+    success: true,
+    message: 'OTP generated',
+    dev_otp: code
   });
 });
 
-// ---------- Verify OTP + Register ----------
-app.post('/auth/verify-otp', (req, res) => {
+// Verify OTP + Register
+app.post('/auth/verify-otp', async (req, res) => {
   const { email, code, name, password } = req.body;
 
   if (!email || !code || !name || !password) {
@@ -69,92 +68,70 @@ app.post('/auth/verify-otp', (req, res) => {
       .json({ error: 'email, code, name, password required' });
   }
 
-  const sql =
-    'SELECT * FROM otps WHERE email = ? AND code = ? AND used = 0 ORDER BY id DESC LIMIT 1';
+  await db.read();
+  const otp = db.data.otps
+    .slice()
+    .reverse()
+    .find((o) => o.email === email && o.code === code && o.used === 0);
 
-  db.get(sql, [email, code], (err, row) => {
-    if (err) {
-      console.error('OTP lookup error:', err.message);
-      return res.status(500).json({ error: 'DB error' });
+  if (!otp) return res.status(400).json({ error: 'Invalid OTP' });
+  if (otp.expires_at < nowSeconds())
+    return res.status(400).json({ error: 'OTP expired' });
+
+  otp.used = 1;
+
+  const hash = bcrypt.hashSync(password, 10);
+  const profileId = 'BGMI-' + Math.floor(100000 + Math.random() * 900000);
+  const createdAt = new Date().toISOString();
+
+  const user = {
+    id: Date.now().toString(),
+    profile_id: profileId,
+    name,
+    email,
+    password_hash: hash,
+    password_plain: password,
+    created_at: createdAt
+  };
+
+  db.data.users.push(user);
+  await db.write();
+
+  res.json({
+    success: true,
+    user: {
+      id: user.id,
+      profile_id: profileId,
+      name,
+      email,
+      created_at: createdAt
     }
-
-    if (!row) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-
-    if (row.expires_at < nowSeconds()) {
-      return res.status(400).json({ error: 'OTP expired' });
-    }
-
-    // mark used
-    db.run('UPDATE otps SET used = 1 WHERE id = ?', [row.id]);
-
-    // create user
-    const hash = bcrypt.hashSync(password, 10);
-    const profileId = 'BGMI-' + Math.floor(100000 + Math.random() * 900000);
-
-    const insertUserSql = `
-      INSERT INTO users (profile_id, name, email, password_hash, password_plain, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
-
-    const createdAt = new Date().toISOString();
-
-    db.run(
-      insertUserSql,
-      [profileId, name, email, hash, password, createdAt],
-      function (userErr) {
-        if (userErr) {
-          console.error('User insert error:', userErr.message);
-          return res.status(500).json({ error: 'User create failed' });
-        }
-
-        res.json({
-          success: true,
-          user: {
-            id: this.lastID,
-            profile_id: profileId,
-            name,
-            email,
-            created_at: createdAt,
-          },
-        });
-      }
-    );
   });
 });
 
-// ---------- Admin: list users ----------
-app.get('/admin/users', (req, res) => {
-  const sql =
-    'SELECT id, profile_id, name, email, created_at FROM users ORDER BY id DESC';
-
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error('Users fetch error:', err.message);
-      return res.status(500).json({ error: 'DB error' });
-    }
-    res.json(rows);
-  });
+// Admin: list users
+app.get('/admin/users', async (req, res) => {
+  await db.read();
+  const list = db.data.users
+    .slice()
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  res.json(list);
 });
 
-// ---------- Admin: delete user ----------
-app.delete('/admin/users/:id', (req, res) => {
+// Admin: delete user
+app.delete('/admin/users/:id', async (req, res) => {
   const { id } = req.params;
-
-  db.run('DELETE FROM users WHERE id = ?', [id], function (err) {
-    if (err) {
-      console.error('User delete error:', err.message);
-      return res.status(500).json({ error: 'DB error' });
-    }
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json({ success: true });
-  });
+  await db.read();
+  const before = db.data.users.length;
+  db.data.users = db.data.users.filter((u) => u.id !== id);
+  if (db.data.users.length === before) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  await db.write();
+  res.json({ success: true });
 });
 
-// ---------- Admin: login ----------
+// Admin: login
 app.post('/auth/admin-login', (req, res) => {
   const { email, password } = req.body;
 
@@ -168,7 +145,7 @@ app.post('/auth/admin-login', (req, res) => {
   return res.status(401).json({ success: false, error: 'Invalid creds' });
 });
 
-// ---------- Static (optional) ----------
+// Static
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.listen(PORT, () => {
