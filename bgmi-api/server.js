@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const { db, initDb } = require('./database');
 const path = require('path');
+const nodemailer = require('nodemailer'); // OTP email ke liye
 
 dotenv.config();
 
@@ -14,8 +15,21 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Nodemailer transporter (Gmail SMTP)
+const mailer = nodemailer.createTransport({
+  host: process.env.MAIL_HOST,          // smtp.gmail.com
+  port: Number(process.env.MAIL_PORT) || 465,
+  secure: true,
+  auth: {
+    user: process.env.MAIL_USER,        // tera gmail
+    pass: process.env.MAIL_PASS,        // gmail app password
+  },
+});
+
 // DB init
-initDb().then(() => console.log('LowDB ready at', process.env.DB_FILE || 'bgmi.json'));
+initDb().then(() =>
+  console.log('LowDB ready at', process.env.DB_FILE || 'bgmi.json')
+);
 
 // Helpers
 function generateOtp() {
@@ -31,7 +45,7 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'BGMI API running' });
 });
 
-// Send OTP
+// Send OTP (email se)
 app.post('/auth/send-otp', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });
@@ -45,17 +59,28 @@ app.post('/auth/send-otp', async (req, res) => {
     email,
     code,
     expires_at: expiresAt,
-    used: 0
+    used: 0,
   });
   await db.write();
 
-  console.log('OTP generated for', email, code);
+  try {
+    await mailer.sendMail({
+      from: process.env.MAIL_USER,
+      to: email,
+      subject: 'Your BGMI Esports OTP',
+      text: `Your OTP is ${code}. It will expire in 5 minutes.`,
+    });
 
-  res.json({
-    success: true,
-    message: 'OTP generated',
-    dev_otp: code
-  });
+    console.log('OTP email sent to', email, code);
+
+    res.json({
+      success: true,
+      message: 'OTP sent to email',
+    });
+  } catch (err) {
+    console.error('OTP email error:', err);
+    res.status(500).json({ error: 'Failed to send OTP email' });
+  }
 });
 
 // Verify OTP + Register
@@ -90,8 +115,8 @@ app.post('/auth/verify-otp', async (req, res) => {
     name,
     email,
     password_hash: hash,
-    password_plain: password,
-    created_at: createdAt
+    password_plain: password, // plain password bhi store
+    created_at: createdAt,
   };
 
   db.data.users.push(user);
@@ -104,8 +129,37 @@ app.post('/auth/verify-otp', async (req, res) => {
       profile_id: profileId,
       name,
       email,
-      created_at: createdAt
-    }
+      created_at: createdAt,
+    },
+  });
+});
+
+// Login: email + plain password
+app.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  await db.read();
+  const user = db.data.users.find(
+    (u) => u.email.toLowerCase() === email.toLowerCase()
+  );
+
+  if (!user || user.password_plain !== password) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+
+  res.json({
+    success: true,
+    user: {
+      id: user.id,
+      profile_id: user.profile_id,
+      name: user.name,
+      email: user.email,
+      created_at: user.created_at,
+    },
   });
 });
 
