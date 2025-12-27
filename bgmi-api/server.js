@@ -1,11 +1,10 @@
-// bgmi-api/server.js
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const { db, initDb } = require('./database');
 const path = require('path');
-const nodemailer = require('nodemailer'); // OTP email ke liye
+const fetch = require('node-fetch'); // Brevo HTTP API
 
 dotenv.config();
 
@@ -15,27 +14,14 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Nodemailer transporter (Brevo SMTP)
-const mailer = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,          // smtp-relay.brevo.com
-  port: Number(process.env.MAIL_PORT) || 587,
-  secure: false,                        // 587 -> false
-  auth: {
-    user: process.env.MAIL_USER,        // 9ed92a001@smtp-brevo.com
-    pass: process.env.MAIL_PASS,        // Brevo SMTP password/API key
-  },
+initDb().then(() => {
+  console.log('LowDB ready at', process.env.DB_FILE || 'bgmi.json');
 });
-
-// DB init
-initDb().then(() =>
-  console.log('LowDB ready at', process.env.DB_FILE || 'bgmi.json')
-);
 
 // Helpers
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
-
 function nowSeconds() {
   return Math.floor(Date.now() / 1000);
 }
@@ -45,7 +31,7 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'BGMI API running' });
 });
 
-// Send OTP (email ke through)
+// Send OTP
 app.post('/auth/send-otp', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });
@@ -64,20 +50,31 @@ app.post('/auth/send-otp', async (req, res) => {
   await db.write();
 
   try {
-    await mailer.sendMail({
-      from: process.env.MAIL_USER,
-      to: email,
-      subject: 'Your BGMI Esports OTP',
-      text: `Your OTP is ${code}. It will expire in 5 minutes.`,
+    const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender: { email: process.env.MAIL_USER, name: 'BGMI Esports' },
+        to: [{ email }],
+        subject: 'Your BGMI Esports OTP',
+        textContent: `Your OTP is ${code}. It will expire in 5 minutes.`,
+      }),
     });
 
-    console.log('OTP email sent to', email, code);
-    return res.json({
-      success: true,
-      message: 'OTP sent to email',
-    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      console.error('Brevo API error:', resp.status, data);
+      return res.status(500).json({ error: 'Failed to send OTP email' });
+    }
+
+    console.log('OTP email sent via Brevo API', email, code, data.messageId);
+    return res.json({ success: true, message: 'OTP sent to email' });
   } catch (err) {
-    console.error('OTP email error:', err);
+    console.error('Brevo API request error:', err);
     return res.status(500).json({ error: 'Failed to send OTP email' });
   }
 });
@@ -85,7 +82,6 @@ app.post('/auth/send-otp', async (req, res) => {
 // Verify OTP + Register
 app.post('/auth/verify-otp', async (req, res) => {
   const { email, code, name, password } = req.body;
-
   if (!email || !code || !name || !password) {
     return res
       .status(400)
@@ -133,10 +129,9 @@ app.post('/auth/verify-otp', async (req, res) => {
   });
 });
 
-// Login: email + plain password
+// Login
 app.post('/auth/login', async (req, res) => {
   const { email, password } = req.body;
-
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
   }
@@ -162,7 +157,7 @@ app.post('/auth/login', async (req, res) => {
   });
 });
 
-// Admin: list users
+// Admin users list
 app.get('/admin/users', async (req, res) => {
   await db.read();
   const list = db.data.users
@@ -171,7 +166,7 @@ app.get('/admin/users', async (req, res) => {
   res.json(list);
 });
 
-// Admin: delete user
+// Admin delete user
 app.delete('/admin/users/:id', async (req, res) => {
   const { id } = req.params;
   await db.read();
@@ -184,17 +179,15 @@ app.delete('/admin/users/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-// Admin: login
+// Admin login
 app.post('/auth/admin-login', (req, res) => {
   const { email, password } = req.body;
-
   if (
     email === process.env.ADMIN_EMAIL &&
     password === process.env.ADMIN_PASSWORD
   ) {
     return res.json({ success: true });
   }
-
   return res.status(401).json({ success: false, error: 'Invalid creds' });
 });
 
