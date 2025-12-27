@@ -4,7 +4,10 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const { db, initDb } = require('./database');
 const path = require('path');
-const fetch = require('node-fetch'); // Brevo HTTP API
+
+// node-fetch ko CommonJS me is tarah use karo
+const fetch = (...args) =>
+  import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 dotenv.config();
 
