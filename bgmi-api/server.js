@@ -15,14 +15,14 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Nodemailer transporter (Gmail SMTP)
+// Nodemailer transporter (Gmail SMTP ya koi bhi provider)
 const mailer = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,          // smtp.gmail.com
+  host: process.env.MAIL_HOST, // e.g. smtp.gmail.com
   port: Number(process.env.MAIL_PORT) || 465,
   secure: true,
   auth: {
-    user: process.env.MAIL_USER,        // tera gmail
-    pass: process.env.MAIL_PASS,        // gmail app password
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
   },
 });
 
@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'BGMI API running' });
 });
 
-// Send OTP (email se)
+// Send OTP (email optional – timeout pe bhi success)
 app.post('/auth/send-otp', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });
@@ -72,15 +72,18 @@ app.post('/auth/send-otp', async (req, res) => {
     });
 
     console.log('OTP email sent to', email, code);
-
-    res.json({
-      success: true,
-      message: 'OTP sent to email',
-    });
   } catch (err) {
     console.error('OTP email error:', err);
-    res.status(500).json({ error: 'Failed to send OTP email' });
+    // IMPORTANT: yaha ab 500 nahi bhejenge; sirf log karenge
   }
+
+  // Hamesha success response, dev ke liye code bhi bhej rahe
+  res.json({
+    success: true,
+    message:
+      'OTP generated. Email sending may fail on this server, but you can use the code from response/logs.',
+    code, // production me hata sakta hai
+  });
 });
 
 // Verify OTP + Register
@@ -115,7 +118,7 @@ app.post('/auth/verify-otp', async (req, res) => {
     name,
     email,
     password_hash: hash,
-    password_plain: password, // plain password bhi store
+    password_plain: password,
     created_at: createdAt,
   };
 
