@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const { db, initDb } = require('./database');
 const path = require('path');
 
-// node-fetch ko CommonJS me is tarah use karo
+// Brevo HTTP API ke liye fetch (CommonJS compatible)
 const fetch = (...args) =>
   import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
@@ -34,7 +34,7 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'BGMI API running' });
 });
 
-// Send OTP
+// Send OTP (Brevo HTTP API)
 app.post('/auth/send-otp', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });
