@@ -22,12 +22,13 @@ const RegisterUsers = () => {
         profileId: u.profile_id || "-",
         name: u.name || "-",
         email: u.email || "-",
-        password: u.password || "****",  // Password field added
+        password: u.password_plain || u.password || "****",  // ✅ Fixed: password_plain first
         registeredAt: u.created_at
           ? new Date(u.created_at)
           : new Date(),
       }));
       setUsers(list);
+      console.log('Loaded users with passwords:', list); // Debug log
     } catch (err) {
       console.error("Load users error:", err);
       setError("Failed to load users");
@@ -68,7 +69,7 @@ const RegisterUsers = () => {
             <th>Profile ID</th>
             <th>Name</th>
             <th>Email</th>
-            <th>Password</th>  {/* New Password column */}
+            <th>Password</th>
             <th>Register Time</th>
             <th>Actions</th>
           </tr>
@@ -80,7 +81,7 @@ const RegisterUsers = () => {
               <td>{u.profileId}</td>
               <td>{u.name}</td>
               <td>{u.email}</td>
-              <td>{u.password}</td>  {/* Password display */}
+              <td>{u.password}</td>  {/* Now shows real password */}
               <td>{u.registeredAt.toLocaleString()}</td>
               <td>
                 <button className="btn-secondary" disabled>
@@ -98,7 +99,7 @@ const RegisterUsers = () => {
 
           {!loading && users.length === 0 && (
             <tr>
-              <td colSpan="7" className="empty-row">  {/* colspan 7 now */}
+              <td colSpan="7" className="empty-row">
                 No users yet. Ask players to register from BGMI app.
               </td>
             </tr>
