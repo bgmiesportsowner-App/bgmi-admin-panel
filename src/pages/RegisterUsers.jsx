@@ -22,6 +22,7 @@ const RegisterUsers = () => {
         profileId: u.profile_id || "-",
         name: u.name || "-",
         email: u.email || "-",
+        password: u.password || "****",  // Password field added
         registeredAt: u.created_at
           ? new Date(u.created_at)
           : new Date(),
@@ -67,6 +68,7 @@ const RegisterUsers = () => {
             <th>Profile ID</th>
             <th>Name</th>
             <th>Email</th>
+            <th>Password</th>  {/* New Password column */}
             <th>Register Time</th>
             <th>Actions</th>
           </tr>
@@ -78,6 +80,7 @@ const RegisterUsers = () => {
               <td>{u.profileId}</td>
               <td>{u.name}</td>
               <td>{u.email}</td>
+              <td>{u.password}</td>  {/* Password display */}
               <td>{u.registeredAt.toLocaleString()}</td>
               <td>
                 <button className="btn-secondary" disabled>
@@ -95,7 +98,7 @@ const RegisterUsers = () => {
 
           {!loading && users.length === 0 && (
             <tr>
-              <td colSpan="6" className="empty-row">
+              <td colSpan="7" className="empty-row">  {/* colspan 7 now */}
                 No users yet. Ask players to register from BGMI app.
               </td>
             </tr>
