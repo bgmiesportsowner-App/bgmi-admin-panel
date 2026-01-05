@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const { db, initDb } = require('./database');
 const path = require('path');
+const shortid = require('shortid');  // New: Unique ID ke liye
 
 // Brevo HTTP API ke liye fetch (CommonJS compatible)
 const fetch = (...args) =>
@@ -82,7 +83,7 @@ app.post('/auth/send-otp', async (req, res) => {
   }
 });
 
-// Verify OTP + Register
+// Verify OTP + Register - UPDATED: Unique Profile ID
 app.post('/auth/verify-otp', async (req, res) => {
   const { email, code, name, password } = req.body;
   if (!email || !code || !name || !password) {
@@ -103,8 +104,12 @@ app.post('/auth/verify-otp', async (req, res) => {
 
   otp.used = 1;
 
+  // Check if user already exists
+  const existingUser = db.data.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (existingUser) return res.status(400).json({ error: 'User already registered' });
+
   const hash = bcrypt.hashSync(password, 10);
-  const profileId = 'BGMI-' + Math.floor(100000 + Math.random() * 900000);
+  const profileId = `BGMI-${shortid.generate().toUpperCase().slice(0,5)}`;  // Unique BGMI-XXXXX
   const createdAt = new Date().toISOString();
 
   const user = {
@@ -157,6 +162,20 @@ app.post('/auth/login', async (req, res) => {
       email: user.email,
       created_at: user.created_at,
     },
+  });
+});
+
+// Get profile by ID - NEW: Profile page ke liye
+app.get('/profile/:id', async (req, res) => {
+  const { id } = req.params;
+  await db.read();
+  const user = db.data.users.find(u => u.id === id || u.profile_id === id);
+  if (!user) return res.status(404).json({ error: 'Profile not found' });
+  res.json({
+    id: user.id,
+    profile_id: user.profile_id,
+    name: user.name,
+    email: user.email,
   });
 });
 
