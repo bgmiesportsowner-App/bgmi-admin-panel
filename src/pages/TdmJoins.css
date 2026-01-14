@@ -1,0 +1,67 @@
+/* src/pages/TdmJoins.css - COMPLETE */
+.tab-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+  background: #f8f9fa;
+  border-color: #007bff;
+}
+
+.tab-btn.active {
+  background: #007bff !important;
+  color: white !important;
+  border-color: #007bff !important;
+}
+
+.refresh-btn {
+  margin-left: auto !important;
+  padding: 12px 20px !important;
+}
+
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 25px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pending { background: #fff3cd; color: #856404; }
+.status-confirmed { background: #d1ecf1; color: #0c5460; }
+.status-registered { background: #d4edda; color: #155724; }
+.status-rejected { background: #f8d7da; color: #721c24; }
+
+code { 
+  background: #f8f9fa !important; 
+  padding: 4px 8px !important; 
+  border-radius: 6px !important; 
+  font-family: 'Courier New', monospace !important;
+  font-size: 13px;
+}
+
+.empty-row {
+  text-align: center !important;
+  color: #6c757d;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .tab-container { justify-content: center; }
+  .tab-btn { padding: 10px 16px; font-size: 13px; }
+  .data-table { font-size: 13px; }
+}
