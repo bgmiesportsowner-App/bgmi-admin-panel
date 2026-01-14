@@ -5,10 +5,17 @@ const { db, initDb } = require('./database');
 const app = express();
 const PORT = process.env.TOURNAMENT_PORT || 5001;
 
+// 🔥 CORS FIXED - ALL PRODUCTION + LOCAL DOMAINS
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: [
+    'https://bgmi-esports-app.onrender.com',  // ✅ PRODUCTION FRONTEND
+    'http://localhost:3000',                  // ✅ LOCAL DEV
+    'http://localhost:3001',                  // ✅ LOCAL DEV 2
+    'https://bgmi-esports-app.onrender.com'   // ✅ DUPLICATE SAFETY
+  ],
   credentials: true
 }));
+
 app.use(express.json({ limit: '10mb' }));
 
 let slotCache = {};
@@ -169,4 +176,5 @@ app.delete('/api/admin/tournament/:id', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n🎮 BGMI SERVER: http://localhost:${PORT}`);
   console.log(`✅ APIs: /api/join-tournament, /api/admin/joins`);
+  console.log(`✅ CORS: https://bgmi-esports-app.onrender.com ✅`);
 });

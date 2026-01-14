@@ -1,13 +1,14 @@
 {
-  "name": "bgmi-api",
+  "name": "bgmi-tournament-api",        // ✅ CHANGED (pehla tha "bgmi-api")
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "tournamentServer.js",        // ✅ CHANGED (pehla tha "index.js")
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js",
+    "start": "node tournamentServer.js", // ✅ CHANGED (pehla tha "node server.js")
     "dev": "nodemon server.js",
     "local": "concurrently \"npm start\" \"wait-on tcp:localhost:5000 && echo Frontend start\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tournament": "node tournamentServer.js"  // ✅ EXTRA (dono servers chalane ke liye)
   },
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",
@@ -28,8 +29,8 @@
     "nodemon": "^3.1.4",
     "wait-on": "^7.2.0"
   },
-  "description": "",
-  "keywords": [],
-  "author": "",
+  "description": "BGMI Esports Tournament Backend API",
+  "keywords": ["bgmi", "esports", "tournament"],
+  "author": "Akash",
   "license": "ISC"
 }

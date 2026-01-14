@@ -1,4 +1,4 @@
-// src/pages/TdmJoins.jsx - ✅ 404 ERROR FIXED + NO LOCALSTORAGE
+// src/pages/TdmJoins.jsx - ✅ PRODUCTION READY + ADMIN PANEL
 import { useState, useEffect } from "react";
 import "./TdmJoins.css";
 
@@ -11,13 +11,17 @@ const TdmJoins = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tdm');
 
+  // 🔥 PRODUCTION BACKEND URL
+  const API_URL = 'https://bgmi-api.onrender.com';
+
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/admin/joins');
+      // ✅ FIXED: localhost:5001 → PRODUCTION URL
+      const response = await fetch(`${API_URL}/api/admin/joins`);
       const data = await response.json();
       setTdmEntries(data.tdmEntries || []);
       setTournamentJoins(data.tournamentJoins || []);
@@ -39,7 +43,7 @@ const TdmJoins = () => {
     const newEntry = { id: Date.now().toString(), ...form, joinedAt: new Date().toISOString() };
 
     try {
-      await fetch('http://localhost:5001/api/tdm-entries', {
+      await fetch(`${API_URL}/api/tdm-entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newEntry)
@@ -51,12 +55,12 @@ const TdmJoins = () => {
     }
   };
 
-  // 🔥 FIXED DELETE - CORRECT URL + NO CONFIRM
+  // 🔥 FIXED DELETE - CORRECT URL + PRODUCTION
   const handleDelete = async (id, type) => {
     try {
-      // ✅ CORRECT URL - /api/admin/tournament/{id}
+      // ✅ PRODUCTION URL + CORRECT ENDPOINT
       const endpoint = type === 'tdm' ? `/api/admin/tdm/${id}` : `/api/admin/tournament/${id}`;
-      const response = await fetch(`http://localhost:5001${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'DELETE'
       });
 
