@@ -1,11 +1,10 @@
-// src/pages/AdminLogin.jsx
+// src/pages/AdminLogin.jsx (FINAL VERSION - NO ALERT, DIRECT DASHBOARD)
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./AdminLogin.css";
 
-const API_BASE =
-  process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -20,22 +19,29 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      // custom backend login
-      const res = await axios.post(`${API_BASE}/auth/admin-login`, {
-        email,
-        password,
+      console.log('🔥 Login attempt:', { email: email.substring(0,3)+'...', password: '***' });
+      
+      const res = await axios.post(`${API_BASE}/api/admin/login`, {
+        email: email.trim(),
+        password: password.trim()
       });
 
-      if (!res.data?.success) {
-        throw new Error("Invalid credentials");
+      // ✅ NO ALERT - DIRECT DASHBOARD!
+      if (res.data?.success) {
+        localStorage.setItem("bgmi_admin_token", res.data.token);
+        localStorage.setItem("bgmi_admin_logged_in", "true");
+        localStorage.setItem("bgmi_admin_email", res.data.admin.email);
+        
+        // IMMEDIATE REDIRECT - NO POPUP!
+        navigate("/admin/dashboard", { replace: true });
+        return;
       }
 
-      // Login success
-      localStorage.setItem("bgmi_admin_logged_in", "true");
-      navigate("/", { replace: true });
+      throw new Error("Invalid credentials");
+      
     } catch (err) {
-      console.error("Admin login error:", err);
-      setError("Invalid admin email or password");
+      console.error("Admin login error:", err.response?.data || err.message);
+      setError(err.response?.data?.error || "Invalid admin email or password");
     } finally {
       setLoading(false);
     }
@@ -60,10 +66,10 @@ const AdminLogin = () => {
             <input
               type="email"
               className="form-input hacker-input"
-              placeholder="admin@bgmi.com"
+              placeholder="Enter admin email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              autoComplete="off"
+              autoComplete="email"
               required
             />
           </label>
@@ -73,10 +79,10 @@ const AdminLogin = () => {
             <input
               type="password"
               className="form-input hacker-input"
-              placeholder="••••••••"
+              placeholder="Enter admin password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="off"
+              autoComplete="current-password"
               required
             />
           </label>
