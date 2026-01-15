@@ -1,105 +1,90 @@
-// src/pages/AdminLogin.jsx (RENDER + LOCALHOST BOTH WORKING)
-import { useState, useEffect } from "react";
+// src/pages/AdminLogin.jsx
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./AdminLogin.css";
 
-// ✅ AUTO DETECTS LOCAL vs PRODUCTION
-const getApiBase = () => {
-  if (typeof window !== 'undefined') {
-    // Render.com pe hai?
-    if (window.location.hostname.includes('onrender.com')) {
-      return 'https://bgmi-admin-panel.onrender.com';
-    }
-    // Local development
-    if (window.location.hostname === 'localhost') {
-      return 'http://localhost:5000';
-    }
-  }
-  // Fallback
-  return process.env.REACT_APP_API_URL || 'http://localhost:5000';
-};
+/* ===============================
+   API BASE
+================================ */
+const API_BASE =
+  process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const AdminLogin = () => {
-  const [email, setEmail] = useState("");
+  const [adminId, setAdminId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [apiBase, setApiBase] = useState("http://localhost:5000");
+
   const navigate = useNavigate();
 
-  // ✅ API BASE AUTO SET ON MOUNT
-  useEffect(() => {
-    const base = getApiBase();
-    setApiBase(base);
-    console.log('🔗 Using API:', base);
-  }, []);
-
+  /* ===============================
+     LOGIN HANDLER
+  ================================ */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      console.log('🔥 Login attempt:', { 
-        email: email.substring(0,3)+'...', 
-        password: '***',
-        api: apiBase 
-      });
-      
-      const res = await axios.post(`${apiBase}/api/admin/login`, {
-        email: email.trim(),
-        password: password.trim()
-      });
+      const res = await axios.post(
+        `${API_BASE}/admin/login`,
+        {
+          id: adminId.trim(),
+          password: password.trim(),
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      // ✅ NO ALERT - DIRECT DASHBOARD!
       if (res.data?.success) {
-        localStorage.setItem("bgmi_admin_token", res.data.token);
+        // ✅ SAME KEY AS App.jsx
         localStorage.setItem("bgmi_admin_logged_in", "true");
-        localStorage.setItem("bgmi_admin_email", res.data.admin.email);
-        
-        console.log('✅ Login success - redirecting to dashboard');
-        navigate("/admin/dashboard", { replace: true });
+        localStorage.setItem("adminToken", res.data.token);
+
+        // ✅ ROOT PATH (ProtectedApp opens Dashboard)
+        navigate("/", { replace: true });
         return;
       }
 
-      throw new Error("Invalid credentials");
-      
+      setError("Invalid admin credentials");
     } catch (err) {
-      console.error("Admin login error:", err.response?.data || err.message);
-      setError(err.response?.data?.error || "Invalid admin email or password");
+      setError(
+        err.response?.data?.message ||
+          "Admin login failed. Check ID & Password."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  /* ===============================
+     UI
+  ================================ */
   return (
     <div className="auth-page hacker-bg">
       <div className="auth-card hacker-card">
         <div className="auth-header">
-          <span className="auth-badge">HACKER ADMIN</span>
-          <h2 className="page-title">Admin Login</h2>
-          <p className="page-subtitle">
-            Access the BGMI Esports Control Room. Only authorized admin allowed.
-          </p>
-          {/* DEBUG INFO */}
-          <small style={{color: '#666'}}>
-            API: {apiBase}
-          </small>
+          <span className="auth-badge">ADMIN ACCESS</span>
+          <h2 className="page-title">BGMI Admin Login</h2>
+          <p className="page-subtitle">Authorized access only</p>
+          <small style={{ color: "#777" }}>API: {API_BASE}</small>
         </div>
 
         {error && <div className="alert alert-error">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label className="form-label">
-            <span>Admin Email</span>
+            <span>Admin ID</span>
             <input
-              type="email"
+              type="text"
               className="form-input hacker-input"
-              placeholder="admin@bgmi.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
+              placeholder="admin123"
+              value={adminId}
+              onChange={(e) => setAdminId(e.target.value)}
               required
             />
           </label>
@@ -109,10 +94,9 @@ const AdminLogin = () => {
             <input
               type="password"
               className="form-input hacker-input"
-              placeholder="Enter admin password"
+              placeholder="bgmi@123"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
               required
             />
           </label>
@@ -122,12 +106,11 @@ const AdminLogin = () => {
             className="btn-primary hacker-btn"
             disabled={loading}
           >
-            {loading ? "Initializing access..." : "Login as Admin"}
+            {loading ? "Verifying..." : "Login"}
           </button>
 
           <p className="auth-footer-text">
-            Unauthorized access will be <strong>traced</strong> and{" "}
-            <strong>logged</strong>.
+            Unauthorized access is prohibited 🚫
           </p>
         </form>
       </div>
