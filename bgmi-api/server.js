@@ -99,6 +99,51 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
+// 🔥 RENDER FIRST-TIME ADMIN CREATOR (ONE TIME ONLY!)
+app.post('/api/admin/create-first', async (req, res) => {
+  try {
+    await db.read();
+    
+    // Check if admin already exists
+    if (db.data.users?.some(u => u.role === 'admin')) {
+      return res.status(403).json({ 
+        error: 'Admin already exists! Use /api/admin/login' 
+      });
+    }
+    
+    const { email, password, name = 'BGMI Admin' } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+    
+    // Create first admin
+    const hash = bcrypt.hashSync(password, 10);
+    const admin = {
+      id: 'ADMIN001',
+      profile_id: 'BGMI-ADMIN',
+      name,
+      email,
+      password_hash: hash,
+      role: 'admin',
+      created_at: new Date().toISOString()
+    };
+    
+    if (!db.data.users) db.data.users = [];
+    db.data.users.push(admin);
+    await db.write();
+    
+    console.log('🎉 FIRST ADMIN CREATED:', email);
+    res.json({ 
+      success: true, 
+      message: 'First admin created successfully! Now login at /api/admin/login',
+      admin: { id: admin.id, email: admin.email, name: admin.name }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error during admin creation' });
+  }
+});
+
 // User registration routes (same as before)
 app.post('/auth/send-otp', async (req, res) => {
   const { email } = req.body;
@@ -234,6 +279,7 @@ app.delete('/api/admin/tournament/:id', adminAuth, async (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n🎮 BGMI SECURE SERVER: http://localhost:${PORT}`);
   console.log(`✅ SECURE ADMIN LOGIN: POST /api/admin/login`);
+  console.log(`✅ FIRST ADMIN CREATE: POST /api/admin/create-first`);
   console.log(`✅ PROTECTED ROUTES: /api/admin/*`);
   console.log(`🚀 Password safe in DATABASE - GitHub ready!`);
 });
