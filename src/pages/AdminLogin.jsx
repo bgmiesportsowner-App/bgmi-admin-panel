@@ -1,17 +1,39 @@
-// src/pages/AdminLogin.jsx (FINAL VERSION - NO ALERT, DIRECT DASHBOARD)
-import { useState } from "react";
+// src/pages/AdminLogin.jsx (RENDER + LOCALHOST BOTH WORKING)
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./AdminLogin.css";
 
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+// ✅ AUTO DETECTS LOCAL vs PRODUCTION
+const getApiBase = () => {
+  if (typeof window !== 'undefined') {
+    // Render.com pe hai?
+    if (window.location.hostname.includes('onrender.com')) {
+      return 'https://bgmi-admin-panel.onrender.com';
+    }
+    // Local development
+    if (window.location.hostname === 'localhost') {
+      return 'http://localhost:5000';
+    }
+  }
+  // Fallback
+  return process.env.REACT_APP_API_URL || 'http://localhost:5000';
+};
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [apiBase, setApiBase] = useState("http://localhost:5000");
   const navigate = useNavigate();
+
+  // ✅ API BASE AUTO SET ON MOUNT
+  useEffect(() => {
+    const base = getApiBase();
+    setApiBase(base);
+    console.log('🔗 Using API:', base);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,9 +41,13 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      console.log('🔥 Login attempt:', { email: email.substring(0,3)+'...', password: '***' });
+      console.log('🔥 Login attempt:', { 
+        email: email.substring(0,3)+'...', 
+        password: '***',
+        api: apiBase 
+      });
       
-      const res = await axios.post(`${API_BASE}/api/admin/login`, {
+      const res = await axios.post(`${apiBase}/api/admin/login`, {
         email: email.trim(),
         password: password.trim()
       });
@@ -32,7 +58,7 @@ const AdminLogin = () => {
         localStorage.setItem("bgmi_admin_logged_in", "true");
         localStorage.setItem("bgmi_admin_email", res.data.admin.email);
         
-        // IMMEDIATE REDIRECT - NO POPUP!
+        console.log('✅ Login success - redirecting to dashboard');
         navigate("/admin/dashboard", { replace: true });
         return;
       }
@@ -56,6 +82,10 @@ const AdminLogin = () => {
           <p className="page-subtitle">
             Access the BGMI Esports Control Room. Only authorized admin allowed.
           </p>
+          {/* DEBUG INFO */}
+          <small style={{color: '#666'}}>
+            API: {apiBase}
+          </small>
         </div>
 
         {error && <div className="alert alert-error">{error}</div>}
@@ -66,7 +96,7 @@ const AdminLogin = () => {
             <input
               type="email"
               className="form-input hacker-input"
-              placeholder="Enter admin email"
+              placeholder="admin@bgmi.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
