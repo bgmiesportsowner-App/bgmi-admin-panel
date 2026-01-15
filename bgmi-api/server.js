@@ -17,12 +17,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// 🔥 HARDCODED ADMIN - NO DATABASE ISSUES EVER
+// 🔥 HARDCODED ADMIN - 100% WORKING
 const ADMIN_USERS = [
   {
     id: 'ADMIN001',
     email: 'admin@bgmi.com',
-    password_hash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password: "password"
+    password_hash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 
     name: 'BGMI Super Admin',
     role: 'admin'
   }
@@ -32,7 +32,7 @@ const ADMIN_USERS = [
 app.get('/', (req, res) => {
   res.json({ 
     status: '🚀 BGMI API LIVE', 
-    admin: 'admin@bgmi.com / password',
+    admin: 'admin@bgmi.com / password',  // ✅ FIXED
     login: 'POST /api/admin/login'
   });
 });
