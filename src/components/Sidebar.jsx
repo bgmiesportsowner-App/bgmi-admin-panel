@@ -10,23 +10,27 @@ const Sidebar = () => {
 
       <nav className="sidebar-nav">
         <NavLink to="/" end className="nav-item">
-          <span>📊 Dashboard</span>
+          📊 Dashboard
         </NavLink>
 
         <NavLink to="/register-users" className="nav-item">
-          <span>👤 Register Users</span>
+          👤 Register Users
         </NavLink>
 
         <NavLink to="/rooms" className="nav-item">
-          <span>🎮 1v1 Room ID & Password</span>
+          🎮 1v1 Room ID & Password
         </NavLink>
 
         <NavLink to="/tdm-joins" className="nav-item">
-          <span>⚔️ 1v1 TDM Joins</span>
+          ⚔️ 1v1 TDM Joins
+        </NavLink>
+
+        <NavLink to="/deposit-users" className="nav-item">
+          💰 Deposit Users
         </NavLink>
 
         <NavLink to="/settings" className="nav-item">
-          <span>⚙️ Settings</span>
+          ⚙️ Settings
         </NavLink>
       </nav>
     </div>

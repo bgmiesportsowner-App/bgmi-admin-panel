@@ -1,63 +1,130 @@
-// src/pages/TdmJoins.jsx - 100% WORKING
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "./TdmJoins.css";
 
+const API_URL = "http://localhost:5002";
+
 const TdmJoins = () => {
-  const [tournamentJoins, setTournamentJoins] = useState([]);
+  const [joins, setJoins] = useState([]);
+  const [rooms, setRooms] = useState({});
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
-  // 🔥 PRODUCTION BACKEND URL
-  const API_URL = 'https://bgmi-api.onrender.com';
+  const fetchData = useCallback(async () => {
+    if (saving) return;
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
     try {
-      // ✅ CORRECT ENDPOINT
-      const response = await fetch(`${API_URL}/api/admin/joins`);
-      const data = await response.json();
-      
-      // 🔥 FIXED: Sirf tournamentJoins use karo
-      console.log('🔍 API Response:', data);
-      setTournamentJoins(data.tournamentJoins || []);
-    } catch (error) {
-      console.error('Failed to fetch:', error);
+      const res = await fetch(`${API_URL}/api/admin/joins`);
+      const data = await res.json();
+
+      setJoins(data.tournamentJoins || []);
+
+      const map = {};
+      data.tournamentJoins.forEach(j => {
+        if (!map[j.tournamentId]) {
+          map[j.tournamentId] = {
+            roomId: j.roomId || "",
+            roomPassword: j.roomPassword || ""
+          };
+        }
+      });
+
+      setRooms(prev => (Object.keys(prev).length ? prev : map));
+    } catch {
+      setMessage("❌ Failed to load data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [saving]);
 
-  // 🔥 FIXED DELETE - CORRECT URL
-  const handleDelete = async (id) => {
+  useEffect(() => {
+    fetchData();
+    const i = setInterval(fetchData, 10000);
+    return () => clearInterval(i);
+  }, [fetchData]);
+
+  /* ================= SAVE ROOM ================= */
+  const saveRoom = async (tournamentId) => {
+    setSaving(true);
+    setMessage("");
+
     try {
-      const response = await fetch(`${API_URL}/api/admin/tournament/${id}`, {
-        method: 'DELETE'
-      });
+      const res = await fetch(
+        `${API_URL}/api/admin/set-room-by-tournament`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tournamentId,
+            ...rooms[tournamentId]
+          })
+        }
+      );
 
-      if (response.ok) {
-        setTournamentJoins(prev => prev.filter(e => e.id !== id));
-      }
-    } catch (error) {
-      console.error('Delete failed:', error);
+      const data = await res.json();
+      setMessage(`✅ ${data.message}`);
+    } catch {
+      setMessage("❌ Save failed");
+    } finally {
+      setSaving(false);
+      fetchData();
     }
   };
 
-  const handleRefresh = () => {
-    setLoading(true);
-    fetchData();
+  /* ================= CLEAR ROOM ================= */
+  const clearRoom = async (tournamentId) => {
+    setSaving(true);
+    setMessage("");
+
+    try {
+      await fetch(`${API_URL}/api/admin/set-room-by-tournament`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tournamentId })
+      });
+
+      setRooms(prev => ({
+        ...prev,
+        [tournamentId]: { roomId: "", roomPassword: "" }
+      }));
+
+      setMessage("🧹 Room cleared");
+    } catch {
+      setMessage("❌ Clear failed");
+    } finally {
+      setSaving(false);
+      fetchData();
+    }
   };
 
-  if (loading) return <div className="page"><h2 style={{textAlign:'center',padding:'50px'}}>Loading...</h2></div>;
+  /* ================= DELETE USER ================= */
+  const deleteUser = async (id) => {
+    setMessage("");
+
+    try {
+      await fetch(`${API_URL}/api/admin/tournament/${id}`, {
+        method: "DELETE"
+      });
+
+      setMessage("🗑️ User deleted");
+      fetchData();
+    } catch {
+      setMessage("❌ Delete failed");
+    }
+  };
+
+  if (loading) return <h2 style={{ padding: 30 }}>Loading...</h2>;
 
   return (
     <div className="page">
-      <h1 className="page-title">🏆 Tournament Joins</h1>
-      
-      <div className="tab-container">
-        <button className="btn-primary refresh-btn" onClick={handleRefresh}>🔄 Refresh</button>
-      </div>
+      <h1>🏆 Tournament Joins (Admin)</h1>
+
+      {/* ✅ ADMIN PANEL MESSAGE */}
+      {message && (
+        <div className="admin-message">
+          {message}
+        </div>
+      )}
 
       <table className="data-table">
         <thead>
@@ -65,40 +132,78 @@ const TdmJoins = () => {
             <th>#</th>
             <th>Tournament</th>
             <th>Player</th>
-            <th>BGMI ID</th>
-            <th>Mode</th>
-            <th>Entry</th>
-            <th>Prize</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Status</th>
-            <th>Joined</th>
-            <th>Actions</th>
+            <th>BGMI</th>
+            <th>Room ID</th>
+            <th>Password</th>
+            <th>Save</th>
+            <th>Clear</th>
+            <th>Delete</th>
           </tr>
         </thead>
+
         <tbody>
-          {tournamentJoins.map((join, index) => (
-            <tr key={join.id}>
-              <td>{index + 1}</td>
-              <td><strong>{join.tournamentName}</strong></td>
-              <td>{join.playerName}</td>
-              <td><code>{join.bgmiId}</code></td>
-              <td>{join.mode}</td>
-              <td>₹{join.entryFee}</td>
-              <td style={{color:'#28a745'}}>₹{join.prizePool}</td>
-              <td>{join.date}</td>
-              <td>{join.time}</td>
-              <td><span className="status-badge status-registered">{join.status}</span></td>
-              <td>{new Date(join.joinedAt).toLocaleString()}</td>
+          {joins.map((j, i) => (
+            <tr key={j.id}>
+              <td>{i + 1}</td>
+              <td>{j.tournamentName}</td>
+              <td>{j.playerName}</td>
+              <td>{j.bgmiId}</td>
+
               <td>
-                <button className="btn-secondary" style={{marginRight: '5px'}}>Edit</button>
-                <button className="btn-danger" onClick={() => handleDelete(join.id)}>🗑️</button>
+                <input
+                  value={rooms[j.tournamentId]?.roomId || ""}
+                  onChange={e =>
+                    setRooms(r => ({
+                      ...r,
+                      [j.tournamentId]: {
+                        ...r[j.tournamentId],
+                        roomId: e.target.value
+                      }
+                    }))
+                  }
+                />
+              </td>
+
+              <td>
+                <input
+                  value={rooms[j.tournamentId]?.roomPassword || ""}
+                  onChange={e =>
+                    setRooms(r => ({
+                      ...r,
+                      [j.tournamentId]: {
+                        ...r[j.tournamentId],
+                        roomPassword: e.target.value
+                      }
+                    }))
+                  }
+                />
+              </td>
+
+              <td>
+                <button onClick={() => saveRoom(j.tournamentId)}>
+                  💾
+                </button>
+              </td>
+
+              <td>
+                <button onClick={() => clearRoom(j.tournamentId)}>
+                  ❌
+                </button>
+              </td>
+
+              <td>
+                <button onClick={() => deleteUser(j.id)}>
+                  🗑️
+                </button>
               </td>
             </tr>
           ))}
-          {tournamentJoins.length === 0 && (
+
+          {joins.length === 0 && (
             <tr>
-              <td colSpan="12" className="empty-row">No tournament registrations yet</td>
+              <td colSpan="9" style={{ textAlign: "center" }}>
+                No data
+              </td>
             </tr>
           )}
         </tbody>
