@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import "./TdmJoins.css";
 
-const API_URL = "http://localhost:5002";
+// 🔥 PERFECT! Local + Render Auto-detect
+const API_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5002"
+    : "https://bgmi-server-save-tournament-data.onrender.com";
 
 const TdmJoins = () => {
   const [joins, setJoins] = useState([]);
@@ -14,6 +18,7 @@ const TdmJoins = () => {
     if (saving) return;
 
     try {
+      console.log("🔄 Fetching from:", API_URL); // Debug
       const res = await fetch(`${API_URL}/api/admin/joins`);
       const data = await res.json();
 
