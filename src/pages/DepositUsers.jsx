@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./DepositUsers.css";
 
-const API = "http://localhost:5002";
+const API = "http://localhost:5001";  // ✅ FIXED: Port 5001
 
 const DepositUsers = () => {
   const [deposits, setDeposits] = useState([]);
@@ -35,13 +35,14 @@ const DepositUsers = () => {
       setLoading(true);
       setError("");
 
-      const res = await fetch(`${API}/api/admin/deposits`);
+      const res = await fetch(`${API}/api/admin/deposits`);  // ✅ Backend endpoint
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error("Failed to fetch deposits");
       }
 
+      console.log("📥 Admin deposits loaded:", data.deposits);
       setDeposits(data.deposits || []);
     } catch (err) {
       console.error(err);
@@ -55,13 +56,12 @@ const DepositUsers = () => {
     fetchDeposits();
   }, []);
 
-  /* ================= UPDATE STATUS ================= */
+  /* ================= APPROVE/REJECT DEPOSIT ================= */
   const updateStatus = async (depositId, status) => {
     try {
-      const res = await fetch(`${API}/api/admin/deposit-status`, {
+      const res = await fetch(`${API}/api/admin/deposit/${depositId}/${status}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ depositId, status }),
       });
 
       const data = await res.json();
@@ -70,17 +70,15 @@ const DepositUsers = () => {
         throw new Error("Status update failed");
       }
 
-      // 🔥 re-fetch from server
-      fetchDeposits();
+      console.log(`✅ ${status.toUpperCase()} - Deposit ID: ${depositId}`);
+      fetchDeposits();  // Refresh list
     } catch (err) {
       alert("Failed to update status");
       console.error(err);
     }
   };
 
-  const filteredDeposits = deposits.filter(
-    d => d.status === filter
-  );
+  const filteredDeposits = deposits.filter(d => d.status === filter);
 
   return (
     <div className="deposit-admin">
@@ -94,7 +92,7 @@ const DepositUsers = () => {
             onClick={() => setFilter(s)}
             className={filter === s ? "active" : ""}
           >
-            {s.toUpperCase()}
+            {s.toUpperCase()} ({deposits.filter(d => d.status === s).length})
           </button>
         ))}
       </div>
@@ -122,36 +120,24 @@ const DepositUsers = () => {
             {filteredDeposits.length === 0 && (
               <tr>
                 <td colSpan="8" style={{ textAlign: "center" }}>
-                  No records found
+                  No {filter} deposits found
                 </td>
               </tr>
             )}
 
             {filteredDeposits.map(d => (
-              <tr key={d.depositId}>
-                <td>{d.username}</td>
-                {/* 🔥 FIXED PROFILE ID DISPLAY - Dono show karega */}
+              <tr key={d.id}>  {/* ✅ d.id use karo */}
+                <td>{d.username || "Player"}</td>
                 <td>
-                  <div style={{ fontSize: '14px' }}>
-                    <strong>{d.profileId}</strong>
-                    <br />
-                    <small style={{ 
-                      color: '#666', 
-                      fontSize: '11px',
-                      fontFamily: 'monospace'
-                    }}>
-                      BGMI-{d.bgmiDisplayId || 'N/A'}
-                    </small>
-                  </div>
+                  <strong>{d.profile_id || d.profileId}</strong>
                 </td>
                 <td>{d.email || "-"}</td>
                 <td>₹{d.amount}</td>
                 <td>{d.utr}</td>
-                {/* 🔥 FIXED DATE COLUMN */}
                 <td>{formatIndianDate(d.createdAt)}</td>
                 <td>
                   <span className={`status ${d.status}`}>
-                    {d.status}
+                    {d.status.toUpperCase()}
                   </span>
                 </td>
                 <td>
@@ -159,19 +145,16 @@ const DepositUsers = () => {
                     <>
                       <button
                         className="approve"
-                        onClick={() =>
-                          updateStatus(d.depositId, "approved")
-                        }
+                        onClick={() => updateStatus(d.id, "approve")}
                       >
-                        Approve
+                        ✅ Approve
                       </button>
+                      <br />
                       <button
                         className="reject"
-                        onClick={() =>
-                          updateStatus(d.depositId, "rejected")
-                        }
+                        onClick={() => updateStatus(d.id, "reject")}
                       >
-                        Reject
+                        ❌ Reject
                       </button>
                     </>
                   ) : (
