@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5001";
+// 🔥 AUTO DETECT - Local + Render Server (Consistent pattern)
+const API_BASE =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5001"
+    : "https://main-server-firebase.onrender.com";
 
 const RegisterUsers = () => {
   const [users, setUsers] = useState([]);
@@ -26,7 +30,7 @@ const RegisterUsers = () => {
         profileId: u.profile_id,      // BGMI-10001
         name: u.username,             // Akash  
         email: u.email,               // wegab86429@lawicon.com
-        balance: u.balance || 0,     // 0
+        balance: u.balance || 0,      // 0
         registeredAt: u.createdAt ? new Date(u.createdAt) : new Date(),
       }));
 
@@ -96,7 +100,7 @@ const RegisterUsers = () => {
         }}>
           ❌ {error}
           <br />
-          <small>Make sure BGMI backend is running on port 5001</small>
+          <small>Make sure BGMI backend is running</small>
         </div>
       )}
 
