@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import "./DepositUsers.css";
 
-const API = "http://localhost:5001";  // ✅ FIXED: Port 5001
+/* 🔥 AUTO DETECT - Local + Render Server */
+const API =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5001"
+    : "https://main-server-firebase.onrender.com";
 
 const DepositUsers = () => {
   const [deposits, setDeposits] = useState([]);
@@ -12,17 +16,16 @@ const DepositUsers = () => {
   /* ================= FORMAT DATE FUNCTION ================= */
   const formatIndianDate = (dateString) => {
     if (!dateString) return "-";
-    
     try {
       const date = new Date(dateString);
-      return date.toLocaleString('en-IN', {
-        timeZone: 'Asia/Kolkata',
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
+      return date.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
       });
     } catch {
       return dateString;
@@ -35,17 +38,19 @@ const DepositUsers = () => {
       setLoading(true);
       setError("");
 
-      const res = await fetch(`${API}/api/admin/deposits`);  // ✅ Backend endpoint
+      console.log("🔍 Fetching deposits from:", `${API}/api/admin/deposits`);
+
+      const res = await fetch(`${API}/api/admin/deposits`);
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error("Failed to fetch deposits");
       }
 
-      console.log("📥 Admin deposits loaded:", data.deposits);
       setDeposits(data.deposits || []);
+      console.log("✅ Deposits loaded:", data.deposits?.length || 0);
     } catch (err) {
-      console.error(err);
+      console.error("❌ Deposit load error:", err);
       setError("Server error while loading deposits");
     } finally {
       setLoading(false);
@@ -56,10 +61,13 @@ const DepositUsers = () => {
     fetchDeposits();
   }, []);
 
-  /* ================= APPROVE/REJECT DEPOSIT ================= */
+  /* ================= APPROVE / REJECT ================= */
   const updateStatus = async (depositId, status) => {
     try {
-      const res = await fetch(`${API}/api/admin/deposit/${depositId}/${status}`, {
+      const url = `${API}/api/admin/deposit/${depositId}/${status}`;
+      console.log("➡️ Updating:", url);
+
+      const res = await fetch(url, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
       });
@@ -70,34 +78,33 @@ const DepositUsers = () => {
         throw new Error("Status update failed");
       }
 
-      console.log(`✅ ${status.toUpperCase()} - Deposit ID: ${depositId}`);
-      fetchDeposits();  // Refresh list
+      console.log(`✅ ${status.toUpperCase()} SUCCESS`);
+      fetchDeposits();
     } catch (err) {
+      console.error("❌ Status update error:", err);
       alert("Failed to update status");
-      console.error(err);
     }
   };
 
-  const filteredDeposits = deposits.filter(d => d.status === filter);
+  const filteredDeposits = deposits.filter((d) => d.status === filter);
 
   return (
     <div className="deposit-admin">
       <h2>💰 Deposit Requests</h2>
 
-      {/* FILTER BUTTONS */}
+      {/* FILTER */}
       <div className="deposit-filter">
-        {["pending", "approved", "rejected"].map(s => (
+        {["pending", "approved", "rejected"].map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
             className={filter === s ? "active" : ""}
           >
-            {s.toUpperCase()} ({deposits.filter(d => d.status === s).length})
+            {s.toUpperCase()} ({deposits.filter((d) => d.status === s).length})
           </button>
         ))}
       </div>
 
-      {/* STATES */}
       {loading && <p style={{ textAlign: "center" }}>Loading deposits...</p>}
       {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
 
@@ -125,13 +132,13 @@ const DepositUsers = () => {
               </tr>
             )}
 
-            {filteredDeposits.map(d => (
-              <tr key={d.id}>  {/* ✅ d.id use karo */}
+            {filteredDeposits.map((d) => (
+              <tr key={d.id}>
                 <td>{d.username || "Player"}</td>
                 <td>
-                  <strong>{d.profile_id || d.profileId}</strong>
+                  <strong>{d.profile_id}</strong>
                 </td>
-                <td>{d.email || "-"}</td>
+                <td>{d.email}</td>
                 <td>₹{d.amount}</td>
                 <td>{d.utr}</td>
                 <td>{formatIndianDate(d.createdAt)}</td>
