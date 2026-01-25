@@ -19,9 +19,7 @@ const RegisterUsers = () => {
     try {
       setLoading(true);
       setError("");
-
       console.log("🔍 Loading BGMI users from:", `${API_BASE}/api/admin/users`);
-
       const res = await axios.get(`${API_BASE}/api/admin/users`);
       console.log("🔍 API Response:", res.data);
 
@@ -34,7 +32,7 @@ const RegisterUsers = () => {
       const list = res.data.users.map((u, idx) => ({
         id: u.id,
         index: idx + 1,
-        profileId: u.profile_id || u.profile_id,
+        profileId: u.profile_id,
         name: u.username,
         email: u.email,
         userPassword: u["User Password"] || "******",
@@ -61,6 +59,7 @@ const RegisterUsers = () => {
      DELETE USER
   =============================== */
   const handleDelete = async (id) => {
+    // eslint-disable-next-line no-restricted-globals
     if (!confirm("Delete this BGMI player permanently?")) return;
 
     try {
