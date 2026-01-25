@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-// 🔥 AUTO DETECT - Local + Render Server (Consistent pattern)
+// 🔥 Auto detect server URL (localhost or Render)
 const API_BASE =
   window.location.hostname === "localhost"
     ? "http://localhost:5001"
@@ -13,7 +13,7 @@ const RegisterUsers = () => {
   const [error, setError] = useState("");
 
   /* ===============================
-     LOAD USERS FROM BGMI SERVER
+     LOAD USERS FROM SERVER
   =============================== */
   const loadUsers = async () => {
     try {
@@ -31,21 +31,18 @@ const RegisterUsers = () => {
         return;
       }
 
-      // Agar user ke paas `register_time_ist` hai, toh use `createdAt` bana do
       const list = res.data.users.map((u, idx) => ({
         id: u.id,
         index: idx + 1,
         profileId: u.profile_id || u.profile_id,
         name: u.username,
         email: u.email,
-        userPassword: u["User Password"],
+        userPassword: u["User Password"] || "******",
         balance: u.balance || 0,
-        // Agar `register_time_ist` hai, toh usko `createdAt` me daal do
         register_time_ist: u.register_time_ist,
-        // Admin ke liye display ke liye normal Date object
         createdAt: u.register_time_ist
           ? new Date(u.register_time_ist + " Asia/Kolkata")
-          : new Date(),
+          : new Date(u.createdAt),
       }));
 
       setUsers(list);
@@ -53,7 +50,7 @@ const RegisterUsers = () => {
     } catch (err) {
       console.error("❌ Load users error:", err.response?.data || err.message);
       setError(
-        `Failed to load users: ${err.response?.status || "Check backend server"}`
+        `Failed to load users: ${err.response?.statusText || "Server not reachable"}`
       );
     } finally {
       setLoading(false);
@@ -61,10 +58,9 @@ const RegisterUsers = () => {
   };
 
   /* ===============================
-     DELETE USER - ESLint FIXED
+     DELETE USER
   =============================== */
   const handleDelete = async (id) => {
-    // eslint-disable-next-line no-restricted-globals
     if (!confirm("Delete this BGMI player permanently?")) return;
 
     try {
@@ -85,9 +81,7 @@ const RegisterUsers = () => {
     <div className="page">
       <div className="page-header">
         <h2 className="page-title">👥 BGMI Esports – Registered Players</h2>
-        <p className="page-subtitle">
-          Admin View - {users.length} Players Total
-        </p>
+        <p className="page-subtitle">Admin View - {users.length} Players Total</p>
         <button
           onClick={loadUsers}
           className="btn-refresh"
@@ -106,7 +100,6 @@ const RegisterUsers = () => {
 
       {error && (
         <div
-          className="alert alert-error"
           style={{
             background: "#fee",
             color: "#c53030",
@@ -124,7 +117,6 @@ const RegisterUsers = () => {
 
       {loading && (
         <div
-          className="alert alert-info"
           style={{
             background: "#ebf8ff",
             color: "#2c5282",
@@ -139,7 +131,6 @@ const RegisterUsers = () => {
 
       <div className="table-container" style={{ overflowX: "auto" }}>
         <table
-          className="data-table"
           style={{
             width: "100%",
             borderCollapse: "collapse",
@@ -176,7 +167,6 @@ const RegisterUsers = () => {
               </th>
             </tr>
           </thead>
-
           <tbody>
             {users.map((u) => (
               <tr
@@ -271,7 +261,6 @@ const RegisterUsers = () => {
               <tr>
                 <td
                   colSpan="8"
-                  className="empty-row"
                   style={{
                     padding: "60px",
                     textAlign: "center",
