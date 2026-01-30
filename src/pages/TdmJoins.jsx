@@ -135,11 +135,14 @@ const TdmJoins = () => {
         <thead>
           <tr>
             <th>#</th>
-            <th>Tournament</th>
-            <th>Player</th>
-            <th>BGMI</th>
+            <th>Profil_Name:</th>
+            <th>Profile_ID:</th>
+            <th>Tournament_Name:</th>
+            <th>BGMI_Name:</th>
+            <th>BGMI ID:</th>
             <th>Room ID</th>
-            <th>Password</th>
+            <th>Room_Password:</th>
+            <th>Date & Time</th>
             <th>Save</th>
             <th>Clear</th>
             <th>Delete</th>

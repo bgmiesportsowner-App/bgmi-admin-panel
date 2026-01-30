@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import "./DepositUsers.css";
 
-/* 🔥 AUTO DETECT - Local + Render Server */
 const API =
   window.location.hostname === "localhost"
-    ? "http://localhost:5001"
-    : "https://main-server-firebase.onrender.com";
+    ? "http://localhost:5002"
+    : "https://bgmi-server-save-tournament-data.onrender.com";
 
 const DepositUsers = () => {
   const [deposits, setDeposits] = useState([]);
@@ -13,12 +12,12 @@ const DepositUsers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* ================= FORMAT DATE FUNCTION ================= */
+  /* ============================= DATE FORMAT (INDIA) ============================= */
   const formatIndianDate = (dateString) => {
     if (!dateString) return "-";
     try {
-      const date = new Date(dateString);
-      return date.toLocaleString("en-IN", {
+      const d = new Date(dateString);
+      return d.toLocaleString("en-IN", {
         timeZone: "Asia/Kolkata",
         day: "numeric",
         month: "short",
@@ -27,152 +26,172 @@ const DepositUsers = () => {
         minute: "2-digit",
         hour12: true,
       });
-    } catch {
+    } catch (err) {
       return dateString;
     }
   };
 
-  /* ================= FETCH DEPOSITS ================= */
-  const fetchDeposits = async () => {
+  /* ============================= FETCH DEPOSITS ============================= */
+  const fetchDeposits = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      console.log("🔍 Fetching deposits from:", `${API}/api/admin/deposits`);
-
       const res = await fetch(`${API}/api/admin/deposits`);
+      if (!res.ok) throw new Error("Fetch failed");
+
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch deposits");
-      }
-
       setDeposits(data.deposits || []);
-      console.log("✅ Deposits loaded:", data.deposits?.length || 0);
     } catch (err) {
-      console.error("❌ Deposit load error:", err);
-      setError("Server error while loading deposits");
+      setError("Server down");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDeposits();
-  }, []);
+  }, [fetchDeposits]);
 
-  /* ================= APPROVE / REJECT ================= */
-  const updateStatus = async (depositId, status) => {
+  /* ============================= UPDATE STATUS (API CALL) ============================= */
+  const updateStatus = async (id, status) => {
     try {
-      const url = `${API}/api/admin/deposit/${depositId}/${status}`;
-      console.log("➡️ Updating:", url);
-
-      const res = await fetch(url, {
+      const res = await fetch(`${API}/api/admin/deposit-status/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
       });
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error("Status update failed");
+      if (res.ok) {
+        fetchDeposits(); // Refresh data from Supabase
+      } else {
+        alert("Update failed");
       }
-
-      console.log(`✅ ${status.toUpperCase()} SUCCESS`);
-      fetchDeposits();
     } catch (err) {
-      console.error("❌ Status update error:", err);
-      alert("Failed to update status");
+      alert("Network error");
     }
   };
 
-  const filteredDeposits = deposits.filter((d) => d.status === filter);
+  /* ============================= DELETE DEPOSIT (API CALL) ============================= */
+  const deleteDeposit = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this deposit?")) return;
 
+    try {
+      const res = await fetch(`${API}/api/admin/deposit/${id}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        fetchDeposits(); // Refresh data from Supabase
+      } else {
+        alert("Delete failed");
+      }
+    } catch (err) {
+      alert("Network error");
+    }
+  };
+
+  /* ============================= FILTER ============================= */
+  const filteredDeposits = deposits.filter(
+    (d) => d.status === filter
+  );
+
+  const getCount = (s) =>
+    deposits.filter((d) => d.status === s).length;
+
+  if (loading) return <div style={{ padding: 50 }}>🔄 Loading deposits...</div>;
+
+  /* ============================= RENDER ============================= */
   return (
     <div className="deposit-admin">
-      <h2>💰 Deposit Requests</h2>
+      <h2>💰 Deposit Requests (Admin)</h2>
 
       {/* FILTER */}
       <div className="deposit-filter">
         {["pending", "approved", "rejected"].map((s) => (
           <button
             key={s}
-            onClick={() => setFilter(s)}
             className={filter === s ? "active" : ""}
+            onClick={() => setFilter(s)}
           >
-            {s.toUpperCase()} ({deposits.filter((d) => d.status === s).length})
+            {s.toUpperCase()} ({getCount(s)})
           </button>
         ))}
       </div>
 
-      {loading && <p style={{ textAlign: "center" }}>Loading deposits...</p>}
-      {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
+      {error && <div style={{ color: "red" }}>{error}</div>}
 
-      {!loading && !error && (
-        <table className="deposit-table">
-          <thead>
+      {/* TABLE */}
+      <table className="deposit-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Profile ID</th>
+            <th>Email</th>
+            <th>Amount</th>
+            <th>UTR</th>
+            <th>Date/Time (IST)</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {filteredDeposits.length === 0 ? (
             <tr>
-              <th>User Name</th>
-              <th>Profile ID</th>
-              <th>Email</th>
-              <th>Amount</th>
-              <th>UTR</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Action</th>
+              <td colSpan="8" style={{ textAlign: "center" }}>
+                No {filter} deposits
+              </td>
             </tr>
-          </thead>
-
-          <tbody>
-            {filteredDeposits.length === 0 && (
-              <tr>
-                <td colSpan="8" style={{ textAlign: "center" }}>
-                  No {filter} deposits found
-                </td>
-              </tr>
-            )}
-
-            {filteredDeposits.map((d) => (
+          ) : (
+            filteredDeposits.map((d) => (
               <tr key={d.id}>
-                <td>{d.username || "Player"}</td>
-                <td>
-                  <strong>{d.profile_id}</strong>
-                </td>
+                <td>{d.name || "Unknown"}</td>
+                <td>{d.profile_id}</td>
                 <td>{d.email}</td>
                 <td>₹{d.amount}</td>
                 <td>{d.utr}</td>
-                <td>{formatIndianDate(d.createdAt)}</td>
-                <td>
-                  <span className={`status ${d.status}`}>
-                    {d.status.toUpperCase()}
-                  </span>
-                </td>
+                <td>{d.date_ist || formatIndianDate(d.date)}</td>
+                <td>{d.status}</td>
                 <td>
                   {d.status === "pending" ? (
                     <>
-                      <button
-                        className="approve"
-                        onClick={() => updateStatus(d.id, "approve")}
+                      <button 
+                        onClick={() => updateStatus(d.id, "approved")}
+                        style={{ marginRight: 5, background: '#4CAF50' }}
                       >
                         ✅ Approve
                       </button>
-                      <br />
-                      <button
-                        className="reject"
-                        onClick={() => updateStatus(d.id, "reject")}
+                      <button 
+                        onClick={() => updateStatus(d.id, "rejected")}
+                        style={{ marginRight: 5, background: '#f44336' }}
                       >
                         ❌ Reject
                       </button>
                     </>
                   ) : (
-                    <small>—</small>
+                    <>
+                      <button 
+                        onClick={() => deleteDeposit(d.id)}
+                        style={{ 
+                          color: 'red', 
+                          background: 'none', 
+                          border: '1px solid red',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🗑️ Delete
+                      </button>
+                    </>
                   )}
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 };

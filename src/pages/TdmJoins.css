@@ -1,0 +1,221 @@
+/* TdmJoins.css - Tournament Admin Panel (Black Premium + Center Aligned) */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.page {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+h1 {
+  text-align: center;
+  background: linear-gradient(135deg, #00d4ff 0%, #ff00ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 25px;
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+}
+
+.admin-message {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  text-align: center;
+  font-weight: 600;
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+  animation: slideDown 0.4s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.data-table {
+  width: 100%;
+  background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  border: 1px solid #404040;
+}
+
+.data-table thead {
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+  color: #00d4ff;
+}
+
+.data-table th {
+  padding: 20px 15px;
+  text-align: CENTER;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.data-table td {
+  padding: 18px 15px;
+  border-bottom: 1px solid #404040;
+  vertical-align: MIDDLE;
+  text-align: CENTER;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.data-table tbody tr {
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.data-table tbody tr:hover {
+  background: linear-gradient(135deg, #2a2a3a, #3a3a4a);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Table Headers Width */
+th:nth-child(1) { width: 5%; }     /* # */
+th:nth-child(2) { width: 12%; }    /* Profil_Name */
+th:nth-child(3) { width: 10%; }    /* Profile_ID */
+th:nth-child(4) { width: 12%; }    /* Tournament_Name */
+th:nth-child(5) { width: 10%; }    /* BGMI_Name */
+th:nth-child(6) { width: 12%; }    /* BGMI ID */
+th:nth-child(7) { width: 10%; }    /* Room ID */
+th:nth-child(8) { width: 10%; }    /* Room Password */
+th:nth-child(9) { width: 12%; }    /* Date & Time */
+th:nth-child(10){ width: 7%; }     /* Save */
+th:nth-child(11){ width: 7%; }     /* Clear */
+th:nth-child(12){ width: 7%; }     /* Delete */
+
+/* Input Fields - Center Aligned */
+.data-table input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #404040;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: linear-gradient(145deg, #2a2a2a, #3a3a3a);
+  color: #e2e8f0;
+  text-align: CENTER;
+}
+
+.data-table input:focus {
+  outline: none;
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.2);
+  background: linear-gradient(145deg, #3a3a3a, #4a4a5a);
+}
+
+/* Buttons - Premium Style */
+.data-table button {
+  width: 45px;
+  height: 45px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: CENTER;
+  justify-content: CENTER;
+  transition: all 0.3s ease;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.save-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6);
+}
+
+.clear-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+}
+
+.clear-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.6);
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.6);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .page { padding: 15px; }
+  .data-table th, .data-table td { padding: 15px 10px; }
+}
+
+@media (max-width: 768px) {
+  h1 { font-size: 2rem; }
+  .data-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .data-table th, .data-table td {
+    min-width: 90px;
+    padding: 12px 8px;
+    font-size: 0.85rem;
+  }
+  .data-table button {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+  }
+}
+
+/* Empty State */
+.data-table .no-data {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 50px;
+  font-size: 1.1rem;
+}
