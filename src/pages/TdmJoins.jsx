@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import "./TdmJoins.css";
 
-// 🔥 PERFECT! Local + Render Auto-detect
 const API_URL =
   window.location.hostname === "localhost"
     ? "http://localhost:5002"
@@ -9,7 +8,7 @@ const API_URL =
 
 const TdmJoins = () => {
   const [joins, setJoins] = useState([]);
-  const [rooms, setRooms] = useState({});
+  const [rooms, setRooms] = useState({}); // ✅ EMPTY ON LOAD
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -18,24 +17,31 @@ const TdmJoins = () => {
     if (saving) return;
 
     try {
-      console.log("🔄 Fetching from:", API_URL); // Debug
+      console.log("🔄 Fetching from:", API_URL);
       const res = await fetch(`${API_URL}/api/admin/joins`);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      
       const data = await res.json();
-
+      console.log("📥 Data received:", data.tournamentJoins);
+      
       setJoins(data.tournamentJoins || []);
 
+      // 🔥 FIXED: FORCE EMPTY ROOMS EVERY TIME (not just first load)
       const map = {};
       data.tournamentJoins.forEach(j => {
-        if (!map[j.tournamentId]) {
-          map[j.tournamentId] = {
-            roomId: j.roomId || "",
-            roomPassword: j.roomPassword || ""
-          };
-        }
+        map[j.tournament_id] = {
+          roomId: "",        // ✅ ALWAYS EMPTY
+          roomPassword: ""   // ✅ ALWAYS EMPTY
+        };
       });
-
-      setRooms(prev => (Object.keys(prev).length ? prev : map));
-    } catch {
+      
+      console.log("🏠 Rooms map FORCED EMPTY:", map);
+      setRooms(map); // ✅ OVERWRITE - no prev check
+    } catch (error) {
+      console.error("❌ Fetch error:", error);
       setMessage("❌ Failed to load data");
     } finally {
       setLoading(false);
@@ -48,83 +54,100 @@ const TdmJoins = () => {
     return () => clearInterval(i);
   }, [fetchData]);
 
-  /* ================= SAVE ROOM ================= */
   const saveRoom = async (tournamentId) => {
     setSaving(true);
     setMessage("");
 
     try {
-      const res = await fetch(
-        `${API_URL}/api/admin/set-room-by-tournament`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tournamentId,
-            ...rooms[tournamentId]
-          })
-        }
-      );
+      const roomData = rooms[tournamentId];
+      if (!roomData || (!roomData.roomId && !roomData.roomPassword)) {
+        setMessage("❌ Enter Room ID or Password first");
+        return;
+      }
+
+      console.log("📤 Saving:", { tournamentId, ...roomData });
+      
+      const res = await fetch(`${API_URL}/api/admin/set-room-by-tournament`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tournamentId,
+          ...roomData
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || `HTTP ${res.status}`);
+      }
 
       const data = await res.json();
-      setMessage(`✅ ${data.message}`);
-    } catch {
-      setMessage("❌ Save failed");
+      console.log("✅ Save success:", data);
+      setMessage(`✅ ${data.message || "Room saved successfully"}`);
+    } catch (error) {
+      console.error("❌ Save error:", error);
+      setMessage(`❌ Save failed: ${error.message}`);
     } finally {
       setSaving(false);
-      fetchData();
+      fetchData(); // ✅ REFRESH - inputs will be EMPTY again
     }
   };
 
-  /* ================= CLEAR ROOM ================= */
   const clearRoom = async (tournamentId) => {
     setSaving(true);
     setMessage("");
 
     try {
-      await fetch(`${API_URL}/api/admin/set-room-by-tournament`, {
+      console.log("🧹 Clearing:", tournamentId);
+      
+      const res = await fetch(`${API_URL}/api/admin/set-room-by-tournament`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tournamentId })
       });
 
-      setRooms(prev => ({
-        ...prev,
-        [tournamentId]: { roomId: "", roomPassword: "" }
-      }));
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
 
       setMessage("🧹 Room cleared");
-    } catch {
+    } catch (error) {
+      console.error("❌ Clear error:", error);
       setMessage("❌ Clear failed");
     } finally {
       setSaving(false);
-      fetchData();
+      fetchData(); // ✅ REFRESH - inputs EMPTY
     }
   };
 
-  /* ================= DELETE USER ================= */
   const deleteUser = async (id) => {
     setMessage("");
 
     try {
-      await fetch(`${API_URL}/api/admin/tournament/${id}`, {
+      console.log("🗑️ Deleting:", id);
+      
+      const res = await fetch(`${API_URL}/api/admin/tournament/${id}`, {
         method: "DELETE"
       });
 
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
       setMessage("🗑️ User deleted");
       fetchData();
-    } catch {
+    } catch (error) {
+      console.error("❌ Delete error:", error);
       setMessage("❌ Delete failed");
     }
   };
 
-  if (loading) return <h2 style={{ padding: 30 }}>Loading...</h2>;
+  if (loading) return <h2 style={{ padding: 30, textAlign: 'center' }}>Loading...</h2>;
 
   return (
     <div className="page">
       <h1>🏆 Tournament Joins (Admin)</h1>
 
-      {/* ✅ ADMIN PANEL MESSAGE */}
       {message && (
         <div className="admin-message">
           {message}
@@ -135,14 +158,18 @@ const TdmJoins = () => {
         <thead>
           <tr>
             <th>#</th>
-            <th>Profil_Name:</th>
-            <th>Profile_ID:</th>
-            <th>Tournament_Name:</th>
-            <th>BGMI_Name:</th>
-            <th>BGMI ID:</th>
+            <th>Profile Name</th>
+            <th>Profile ID</th>
+            <th>Tournament</th>
+            <th>Player Name</th>
+            <th>BGMI ID</th>
+            <th>Entry</th>
+            <th>Prize</th>
+            <th>Mode</th>
+            <th>Map</th>
             <th>Room ID</th>
-            <th>Room_Password:</th>
-            <th>Date & Time</th>
+            <th>Room Pass</th>
+            <th>Date</th>
             <th>Save</th>
             <th>Clear</th>
             <th>Delete</th>
@@ -153,54 +180,95 @@ const TdmJoins = () => {
           {joins.map((j, i) => (
             <tr key={j.id}>
               <td>{i + 1}</td>
-              <td>{j.tournamentName}</td>
-              <td>{j.playerName}</td>
-              <td>{j.bgmiId}</td>
-
+              <td>{j.profile_name || 'N/A'}</td>
+              <td>{j.profile_id || 'N/A'}</td>
+              <td>{j.tournament_name || 'N/A'}</td>
+              <td>{j.player_name || 'N/A'}</td>
+              <td>{j.bgmi_id || 'N/A'}</td>
+              <td>₹{j.entry_fee || 0}</td>
+              <td>₹{j.prize_pool || 0}</td>
+              <td>{j.mode || 'TDM'}</td>
+              <td>{j.map || 'Erangel'}</td>
+              
+              {/* ✅ Room ID - GUARANTEED EMPTY */}
               <td>
                 <input
-                  value={rooms[j.tournamentId]?.roomId || ""}
+                  value={rooms[j.tournament_id]?.roomId || ""}
                   onChange={e =>
                     setRooms(r => ({
                       ...r,
-                      [j.tournamentId]: {
-                        ...r[j.tournamentId],
+                      [j.tournament_id]: {
+                        ...r[j.tournament_id],
                         roomId: e.target.value
                       }
                     }))
                   }
+                  placeholder="Room ID"
+                  disabled={saving}
+                  style={{ padding: '4px 8px', minWidth: '90px', fontSize: '12px' }}
                 />
               </td>
 
+              {/* ✅ Room Password - GUARANTEED EMPTY */}
               <td>
                 <input
-                  value={rooms[j.tournamentId]?.roomPassword || ""}
+                  type="password"
+                  value={rooms[j.tournament_id]?.roomPassword || ""}
                   onChange={e =>
                     setRooms(r => ({
                       ...r,
-                      [j.tournamentId]: {
-                        ...r[j.tournamentId],
+                      [j.tournament_id]: {
+                        ...r[j.tournament_id],
                         roomPassword: e.target.value
                       }
                     }))
                   }
+                  placeholder="Pass"
+                  disabled={saving}
+                  style={{ padding: '4px 8px', minWidth: '90px', fontSize: '12px' }}
                 />
               </td>
 
+              <td>{j.joined_at ? new Date(j.joined_at).toLocaleString('en-IN') : 'N/A'}</td>
+              
               <td>
-                <button onClick={() => saveRoom(j.tournamentId)}>
+                <button 
+                  onClick={() => saveRoom(j.tournament_id)}
+                  disabled={saving}
+                  style={{ 
+                    padding: '4px 8px', margin: '1px', fontSize: '12px',
+                    background: '#4CAF50', color: 'white', border: 'none',
+                    borderRadius: '3px', cursor: saving ? 'not-allowed' : 'pointer'
+                  }}
+                >
                   💾
                 </button>
               </td>
-
+              
               <td>
-                <button onClick={() => clearRoom(j.tournamentId)}>
-                  ❌
+                <button 
+                  onClick={() => clearRoom(j.tournament_id)}
+                  disabled={saving}
+                  style={{ 
+                    padding: '4px 8px', margin: '1px', fontSize: '12px',
+                    background: '#ff9800', color: 'white', border: 'none',
+                    borderRadius: '3px', cursor: saving ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  🧹
                 </button>
               </td>
-
+              
               <td>
-                <button onClick={() => deleteUser(j.id)}>
+                <button 
+                  onClick={() => deleteUser(j.id)}
+                  disabled={saving}
+                  style={{ 
+                    padding: '4px 8px', margin: '1px', fontSize: '12px',
+                    background: '#f44336', color: 'white', border: 'none',
+                    borderRadius: '3px', cursor: saving ? 'not-allowed' : 'pointer'
+                  }}
+                >
                   🗑️
                 </button>
               </td>
@@ -209,13 +277,24 @@ const TdmJoins = () => {
 
           {joins.length === 0 && (
             <tr>
-              <td colSpan="9" style={{ textAlign: "center" }}>
-                No data
+              <td colSpan="16" style={{ textAlign: "center", padding: '20px', color: '#666' }}>
+                📭 No tournament joins found
               </td>
             </tr>
           )}
         </tbody>
       </table>
+
+      <div style={{ marginTop: '20px', fontSize: '12px', color: '#666' }}>
+        <details>
+          <summary>🔍 Debug Info</summary>
+          <pre>{JSON.stringify({ 
+            totalJoins: joins.length, 
+            roomsCount: Object.keys(rooms).length,
+            sampleData: joins[0] || 'No data'
+          }, null, 2)}</pre>
+        </details>
+      </div>
     </div>
   );
 };
