@@ -1,7 +1,7 @@
-/* src/components/Topbar.css */
+/* src/components/Topbar.css - FIXED VERSION (NO SCROLL) ✅ */
 
 .topbar {
-  height: 72px;
+  height: 64px;                    /* Fixed height */
   padding: 0 24px;
   display: flex;
   align-items: center;
@@ -9,9 +9,14 @@
   background: radial-gradient(circle at top left, #141b33 0, #050815 55%);
   border-bottom: 1px solid rgba(120, 255, 200, 0.08);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  
+  /* 🔥 STICKY FIX - theme.css के साथ sync */
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 999;                    /* Below sidebar (1000) but above content */
+  flex-shrink: 0;                  /* Never shrink */
+  margin-left: 260px;              /* Sidebar width offset */
+  width: calc(100% - 260px);       /* Full width minus sidebar */
 }
 
 /* left side title */
@@ -25,6 +30,7 @@
   font-weight: 600;
   letter-spacing: 0.03em;
   color: #f4fcff;
+  margin: 0;
 }
 
 .topbar-subtitle {
@@ -107,11 +113,13 @@
   box-shadow: none;
 }
 
-/* responsive tweaks */
+/* 🔥 RESPONSIVE - MOBILE */
 @media (max-width: 768px) {
   .topbar {
     padding: 0 16px;
     height: 64px;
+    margin-left: 0 !important;      /* Mobile: Full width */
+    width: 100% !important;
   }
 
   .topbar-title {

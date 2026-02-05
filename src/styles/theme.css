@@ -1,11 +1,11 @@
-/* src/styles/theme.css - FULL CODE WITH PERFECT CLEAR WHITE TEXT VISIBILITY */
+/* src/styles/theme.css - COMPLETE FIXED VERSION WITH STICKY SIDEBAR ✅ */
 
 :root {
   --bg-main: #050810;
   --bg-card: #0b1020;
   --bg-alt: #0f172a;
   --border-soft: #1f2937;
-  --text-main: #e5e7eb;        /* LIGHT GRAY-WHITE - PERFECT FOR DARK BG */
+  --text-main: #e5e7eb;
   --text-muted: #9ca3af;
   --accent-green: #22c55e;
   --accent-cyan: #06b6d4;
@@ -19,20 +19,30 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
   color: var(--text-main) !important;
+  overflow-x: hidden; /* Horizontal scroll prevent */
 }
 
+/* 🔥 MAIN FIX - STICKY SIDEBAR LAYOUT */
 .app-root {
   display: flex;
   min-height: 100vh;
+  overflow: hidden; /* Body scroll completely disabled */
 }
 
-/* Sidebar */
+/* 🔥 FIXED SIDEBAR - NO MORE SCROLLING */
 .sidebar {
   width: 260px;
+  height: 100vh;           /* Full viewport height */
+  position: fixed;         /* Fixed position */
+  top: 0;
+  left: 0;
+  z-index: 1000;           /* Always on top */
   background: linear-gradient(180deg, #020617, #020617 40%, #020617 100%);
   border-right: 1px solid var(--border-soft);
   padding: 20px 16px;
   box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
+  overflow-y: auto;        /* Only sidebar internal scroll if needed */
+  flex-shrink: 0;
 }
 
 .sidebar-logo {
@@ -86,11 +96,13 @@ body {
   color: var(--accent-green);
 }
 
-/* Main layout */
+/* 🔥 MAIN CONTENT - SCROLLABLE ONLY HERE */
 .app-main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  margin-left: 260px;      /* Sidebar width offset */
+  min-height: 100vh;
 }
 
 .topbar {
@@ -106,6 +118,7 @@ body {
     rgba(15, 23, 42, 0.9),
     rgba(2, 6, 23, 0.96)
   );
+  flex-shrink: 0;          /* Topbar fixed height */
 }
 
 .topbar-title {
@@ -139,8 +152,12 @@ body {
   border: 1px solid rgba(34, 197, 94, 0.7);
 }
 
+/* 🔥 CONTENT SCROLLS - PERFECT HEIGHT */
 .app-content {
+  flex: 1;
   padding: 20px 24px 30px;
+  overflow-y: auto;        /* Only this scrolls */
+  height: calc(100vh - 64px); /* Full height minus topbar */
 }
 
 /* Page */
@@ -385,7 +402,7 @@ button {
   transform: translateY(-1px);
 }
 
-/* 🔥 REGISTER USERS TABLE - ULTRA CLEAR TEXT VISIBILITY */
+/* Table Styles */
 .table-container {
   background: var(--bg-card);
   border-radius: 16px;
@@ -422,7 +439,7 @@ button {
   background: transparent !important;
 }
 
-/* SAB TEXT CLEAR + VISIBLE */
+/* Force all table text visible */
 .data-table td *,
 .data-table th * {
   color: var(--text-main) !important;
@@ -444,7 +461,6 @@ button {
   color: var(--text-main) !important;
 }
 
-/* BGMI ID - PERFECT CLEAR TEXT */
 .bgmi-id,
 .bgmi-id span,
 .bgmi-id strong,
@@ -459,18 +475,6 @@ button {
   text-shadow: none !important;
 }
 
-/* FORCE ALL TABLE CONTENT CLEAR */
-.data-table,
-.data-table *,
-.data-table td,
-.data-table td *,
-.data-table th,
-.data-table th * {
-  color: var(--text-main) !important;
-  background: transparent !important;
-}
-
-/* Empty state */
 .empty-row {
   text-align: center !important;
   color: var(--text-muted) !important;
@@ -500,12 +504,217 @@ button {
   .data-table td {
     padding: 12px 8px !important;
   }
+  
+  /* Mobile: Hide sidebar */
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .app-main {
+    margin-left: 0;
+  }
 }
 
-/* Settings */
 .settings-box {
   background: var(--bg-card);
   border-radius: 12px;
   padding: 16px;
   border: 1px dashed var(--border-soft);
+}
+
+/* src/styles/theme.css - FINAL BULLETPROOF VERSION (NO SCROLL ANYWHERE) ✅ */
+
+:root {
+  --bg-main: #050810;
+  --bg-card: #0b1020;
+  --bg-alt: #0f172a;
+  --border-soft: #1f2937;
+  --text-main: #e5e7eb;
+  --text-muted: #9ca3af;
+  --accent-green: #22c55e;
+  --accent-cyan: #06b6d4;
+  --accent-purple: #a855f7;
+  --danger: #ef4444;
+}
+
+/* 🔥 BULLETPROOF GLOBAL SCROLL CONTROL */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden; /* COMPLETE SCROLL LOCK */
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+  color: var(--text-main) !important;
+}
+
+/* 🔥 APP ROOT - NO SCROLL */
+.app-root {
+  display: flex;
+  height: 100vh; /* EXACT viewport */
+  overflow: hidden;
+}
+
+/* 🔥 PERFECT FIXED SIDEBAR */
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  background: linear-gradient(180deg, #020617, #020617 40%, #020617 100%);
+  border-right: 1px solid var(--border-soft);
+  padding: 20px 16px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
+  overflow-y: auto; /* ONLY sidebar scrolls internally */
+}
+
+/* 🔥 MAIN CONTAINER */
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 260px; /* Sidebar offset */
+  height: 100vh; /* EXACT height */
+  overflow: hidden;
+}
+
+/* 🔥 FIXED TOPBAR - NO SCROLL */
+.topbar {
+  height: 64px !important;
+  flex-shrink: 0 !important;
+  border-bottom: 1px solid var(--border-soft);
+  padding: 10px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(16px);
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.96));
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+/* 🔥 ONLY CONTENT SCROLLS */
+.app-content {
+  flex: 1;
+  padding: 20px 24px 30px;
+  overflow-y: auto; /* ONLY HERE SCROLL */
+  overflow-x: hidden;
+  height: calc(100vh - 64px); /* Perfect calculation */
+}
+
+/* बाकी सभी styles same रहें... (logo, nav-item, cards, tables etc) */
+
+.sidebar-logo {
+  margin-bottom: 30px;
+}
+
+.logo-main {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--accent-green);
+  text-transform: uppercase;
+}
+
+.logo-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.nav-item {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.18s ease-out;
+}
+
+.nav-item:hover {
+  background: #020617;
+  border-color: var(--accent-cyan);
+  color: var(--text-main);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.35);
+  transform: translateX(2px);
+}
+
+.nav-item.active {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.topbar-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-main) !important;
+}
+
+.topbar-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-time {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.topbar-badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(34, 197, 94, 0.7);
+}
+
+/* बाकी सभी styles (page, cards, tables, buttons) exactly same रहें */
+.page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ... rest of your existing styles (page-title, cards, tables, etc) ... */
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .app-main {
+    margin-left: 0;
+  }
+  
+  html, body {
+    overflow: auto; /* Mobile scroll allow */
+  }
 }
