@@ -7,8 +7,10 @@ import "./AdminLogin.css";
 /* ===============================
    API BASE
 ================================ */
-const API_BASE =
-  process.env.REACT_APP_API_URL || "http://localhost:5000";
+ const API_URL =
+    window.location.hostname === "localhost"
+      ? "http://localhost:5000"
+      : "https://admin-server-gw8e.onrender.com";
 
 const AdminLogin = () => {
   const [adminId, setAdminId] = useState("");
