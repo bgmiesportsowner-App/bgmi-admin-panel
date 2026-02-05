@@ -1,16 +1,16 @@
-// src/pages/AdminLogin.jsx
+// src/pages/AdminLogin.jsx - FINAL FIXED CODE ✅
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./AdminLogin.css";
 
 /* ===============================
-   API BASE
+   API BASE - AUTO DETECT ✅
 ================================ */
- const API_URL =
-    window.location.hostname === "localhost"
-      ? "http://localhost:5000"
-      : "https://admin-server-gw8e.onrender.com";
+const API_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000"
+    : "https://admin-server-gw8e.onrender.com";
 
 const AdminLogin = () => {
   const [adminId, setAdminId] = useState("");
@@ -21,7 +21,7 @@ const AdminLogin = () => {
   const navigate = useNavigate();
 
   /* ===============================
-     LOGIN HANDLER
+     LOGIN HANDLER - FIXED ✅
   ================================ */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +30,7 @@ const AdminLogin = () => {
 
     try {
       const res = await axios.post(
-        `${API_BASE}/admin/login`,
+        `${API_URL}/admin/login`, // ✅ API_URL FIXED (was API_BASE)
         {
           id: adminId.trim(),
           password: password.trim(),
@@ -43,11 +43,8 @@ const AdminLogin = () => {
       );
 
       if (res.data?.success) {
-        // ✅ SAME KEY AS App.jsx
         localStorage.setItem("bgmi_admin_logged_in", "true");
         localStorage.setItem("adminToken", res.data.token);
-
-        // ✅ ROOT PATH (ProtectedApp opens Dashboard)
         navigate("/", { replace: true });
         return;
       }
@@ -64,7 +61,7 @@ const AdminLogin = () => {
   };
 
   /* ===============================
-     UI
+     UI - FIXED ✅
   ================================ */
   return (
     <div className="auth-page hacker-bg">
@@ -73,7 +70,7 @@ const AdminLogin = () => {
           <span className="auth-badge">ADMIN ACCESS</span>
           <h2 className="page-title">BGMI Admin Login</h2>
           <p className="page-subtitle">Authorized access only</p>
-          <small style={{ color: "#777" }}>API: {API_BASE}</small>
+          <small style={{ color: "#777" }}>API: {API_URL}</small> {/* ✅ API_URL */}
         </div>
 
         {error && <div className="alert alert-error">{error}</div>}
@@ -84,7 +81,7 @@ const AdminLogin = () => {
             <input
               type="text"
               className="form-input hacker-input"
-              placeholder="admin123"
+              placeholder="bgmiadmin"
               value={adminId}
               onChange={(e) => setAdminId(e.target.value)}
               required
@@ -96,7 +93,7 @@ const AdminLogin = () => {
             <input
               type="password"
               className="form-input hacker-input"
-              placeholder="bgmi@123"
+              placeholder="supersecret123"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
